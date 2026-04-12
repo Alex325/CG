@@ -11,6 +11,8 @@ export class Ground extends GameObject {
 
         const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
 
+        groundPlane.rotateX(THREE.MathUtils.degToRad(-90));
+
         this._object.add(groundPlane);
     }
 }

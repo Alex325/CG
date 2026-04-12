@@ -8,9 +8,13 @@ export class Game {
     #scene;
     #renderer;
     #clock;
+    #player;
     #camera;
     #globalLight;
     #gameObjects;
+    #mousePos;
+    #raycaster;
+    #helper;
 
     constructor() {
         this.#init();
@@ -20,31 +24,46 @@ export class Game {
         this.#scene = new THREE.Scene();
         this.#renderer = initRenderer('#1884d6');
         this.#clock = new THREE.Timer();
-        this.#camera = new THREE.PerspectiveCamera(120, window.innerWidth / window.innerHeight, 0.1, 100);
         this.#globalLight = new THREE.AmbientLight(0xffffff, 1);
         this.#gameObjects = [];
+        this.#player = this.instantiate(new Player());
+        this.#camera = this.#player.getCamera();
+        this.#mousePos = new THREE.Vector2();
 
         this.#scene.add(this.#globalLight);
         this.#scene.add(new THREE.AxesHelper(20));
 
-        this.#camera.position.set(20, 20, 20);
-        this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
-
         window.onresize = () => { onWindowResize(this.#camera, this.#renderer); };
+        window.onmousemove = e => { 
+            this.#mousePos.x = (e.clientX / window.innerWidth) * 2 - 1;
+            this.#mousePos.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        };
 
-        this.instantiate(new Player());
-        this.instantiate(new Ground());
+        this.#raycaster = new THREE.Raycaster();
+
+        void this.instantiate(new Ground());
     }
 
     #udpate(dt = 1/60) {
         for (const gameObject of this.#gameObjects) {
             gameObject.update(dt, this);
         }
+
+    }
+
+    getRaycaster() {
+        return this.#raycaster;
+    }
+
+    getMousePos() {
+        return this.#mousePos;
     }
 
     instantiate(obj) {
         this.#gameObjects.push(obj);
         this.#scene.add(obj.getObj());
+
+        return obj;
     }
 
     #render() {

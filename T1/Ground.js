@@ -6,7 +6,7 @@ export class Ground extends GameObject {
     constructor() {
         super();
 
-        const planeGeometry = new THREE.PlaneGeometry(400, 200);
+        const planeGeometry = new THREE.PlaneGeometry(2000, 400);
         const planeMaterial = setDefaultMaterial('green');
 
         const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);

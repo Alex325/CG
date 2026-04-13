@@ -8,18 +8,15 @@ export class Player extends GameObject {
     #airplane;
     #collplane;
     #speed = 20;
-    #raycast;
 
     constructor() {
         super();
         
-        this.#camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1000);
-        this.#camera.position.set(0, 0, -150);
+        this.#camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 1000);
+        this.#camera.position.set(0, 0, -200);
         this.#camera.lookAt(new THREE.Vector3(0, 0, 0));
         
-        const airplaneGeometry = new THREE.BoxGeometry(20, 20, 20);
-        const airplaneMaterial = setDefaultMaterial('red');
-        this.#airplane = new THREE.Mesh(airplaneGeometry, airplaneMaterial);
+        this.#buildPlane();
         
         const collplaneGeometry = new THREE.PlaneGeometry(100, 100);
         const collplaneMaterial = setDefaultMaterial('black');
@@ -27,17 +24,38 @@ export class Player extends GameObject {
         this.#collplane = new THREE.Mesh(collplaneGeometry, collplaneMaterial);
         this.#collplane.material.side = THREE.DoubleSide;
         this.#collplane.position.set(0, 0, -20);
-        
-        this.#raycast = new THREE.Raycaster();
-        
+                
         this._object.add(this.#camera);
         this._object.add(this.#collplane);
         this._object.add(this.#airplane);
         
-        this._object.position.set(0, 20, -200);
+        this._object.position.set(0, 200, -200);
         
     }
     
+    #buildPlane() {
+
+        const airplane = new THREE.Group();
+
+        const bodyGeometry = new THREE.CapsuleGeometry(20, 50, 20, 20);
+        const bodyMaterial = setDefaultMaterial('orange');
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+
+
+        const wingsGeometry = new THREE.SphereGeometry(20, 20, 20);
+        const wingsMaterial = setDefaultMaterial('lightgreen');
+        const wings = new THREE.Mesh(wingsGeometry, wingsMaterial);
+
+        body.rotateX(THREE.MathUtils.degToRad(-90));
+        wings.scale.set(5, 0.5, 0.5);
+        wings.translateZ(10);
+
+        airplane.add(body);
+        airplane.add(wings);
+
+        this.#airplane = airplane;
+    }
+
     #resizePlane() {
         const distance = this.#camera.position.z - this.#collplane.position.z;
         const vFov = THREE.MathUtils.degToRad(this.#camera.fov);
@@ -61,12 +79,9 @@ export class Player extends GameObject {
         
         if (!hit) return;
         
-        const { x, y } = hit.point.sub(this._object.position);
+        const planePos = hit.point.sub(this._object.position);
 
-        this.#airplane.position.set(x, y, 0);
-
-        console.log(`${x}, ${y}\n${this.#airplane.position.x}, ${this.#airplane.position.y}`);
-        
+        this.#airplane.position.lerp(planePos, 1 - 0.01**dt);        
         
 
     }

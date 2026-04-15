@@ -29,9 +29,9 @@ export class Game {
         this.#player = this.instantiate(new Player());
         this.#camera = this.#player.getCamera();
         this.#mousePos = new THREE.Vector2();
+        this.#scene.fog = new THREE.Fog(0xcccccc, 300, 1000)        
 
         this.#scene.add(this.#globalLight);
-        this.#scene.add(new THREE.AxesHelper(20));
 
         window.onresize = () => { onWindowResize(this.#camera, this.#renderer); };
         window.onmousemove = e => { 

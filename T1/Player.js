@@ -7,7 +7,7 @@ export class Player extends GameObject {
     #camera;
     #airplane;
     #collplane;
-    #speed = 20;
+    #speed = 200;
     #curLookAt;
 
 

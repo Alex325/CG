@@ -28,7 +28,7 @@ export class Player extends GameObject {
         this._object.add(this.#airplane);
         this._object.add(this.#aimTargetParent);
         
-        this._object.position.set(0, 400, -200);
+        this._object.position.set(0, 500, -200);
 
 
         
@@ -43,10 +43,10 @@ export class Player extends GameObject {
     #buildPlane() {
         const collplaneGeometry = new THREE.PlaneGeometry(1, 1);
         const collplaneMaterial = setDefaultMaterial('black');
-        collplaneMaterial.wireframe = true;
+        collplaneMaterial.wireframe = false;
         this.#collplane = new THREE.Mesh(collplaneGeometry, collplaneMaterial);
         this.#collplane.material.side = THREE.DoubleSide;
-        this.#collplane.visible = true;
+        this.#collplane.visible = false;
         this.#collplane.position.set(0, 0, 200);
         this.#prevPos = this.#collplane.position.clone();
     }
@@ -131,8 +131,8 @@ export class Player extends GameObject {
     #resizePlane() {
         const distance = this.#camera.position.z - this.#collplane.position.z;
         const vFov = THREE.MathUtils.degToRad(this.#camera.fov);
-        const height = (2 * Math.tan(vFov / 2) * distance);
-        const width = (height * this.#camera.aspect);
+        const height = 2 * Math.tan(vFov / 2) * distance;
+        const width = height * this.#camera.aspect;
         
         this.#collplane.scale.set(width, height, 1);
     }
@@ -197,7 +197,7 @@ export class Player extends GameObject {
 
             this.#moveAirplane(moveDir, dt);
             this.#rotateAirplane((new THREE.Vector2(-ndcDelta.x, ndcDelta.y)).multiplyScalar(25), dt);
-            this.#lean(Math.sign(Math.abs(ndcDelta.x) > 0.1 ? ndcDelta.x : 0), 70, dt);
+            this.#lean(Math.sign(Math.abs(ndcDelta.x) > 0.025 ? ndcDelta.x : 0), 70, dt);
         } else {
 
             this.#moveAirplane(this.#prevPos, dt);

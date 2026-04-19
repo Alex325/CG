@@ -34,17 +34,53 @@ export class Ground extends GameObject {
 
     #populate(plane) {
 
+        const placed = [];
+
         for (let i = 0; i < this.#treeCount; i++) {
-            const [x, y] = [THREE.MathUtils.seededRandom() - 0.5, THREE.MathUtils.seededRandom() - 0.5];
-            const heightFactor = (THREE.MathUtils.seededRandom() - 0.5)*0.5;
+            let attempts = 0;
+            let valid = false;
+            let x, y, tree, radius;
 
-            const temp = THREE.MathUtils.randInt(-1, 2);
+            while (!valid && attempts < 50) {
+                attempts++;
 
-            const tree = temp ? new Tree1() : new Tree2();
-            tree.getObj().position.set(x*(this.#width/2), y*(this.#length/2), tree.getObj().position.z + tree.trunkHeight/2);
-            tree.getObj().scale.set(1, 1, 1  + heightFactor);
+                x = (THREE.MathUtils.seededRandom() - 0.5) * (this.#width * 0.9);
+                y = (THREE.MathUtils.seededRandom() - 0.5) * (this.#length * 0.9);
+
+                const temp = THREE.MathUtils.randInt(0, 1);
+                tree = temp ? new Tree1() : new Tree2();
+
+                radius = 100; 
+
+                valid = true;
+
+                for (const p of placed) {
+                    const dx = x - p.x;
+                    const dy = y - p.y;
+
+                    const minDist = (radius + p.radius) / 2;
+
+                    if (dx * dx + dy * dy < minDist * minDist) {
+                        valid = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!valid) continue;
+
+            placed.push({ x, y, radius });
+
+            const heightFactor = (THREE.MathUtils.seededRandom() - 0.5) * 0.5 + 0.5;
+
+            tree.getObj().position.set(
+                x,
+                y,
+                tree.getObj().position.z + tree.trunkHeight / 2
+            );
+
+            tree.getObj().scale.set(1, 1, 1 + heightFactor);
             plane.add(tree.getObj());
-            
         }
 
     }

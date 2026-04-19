@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { initRenderer, onWindowResize } from '../libs/util/util.js';
 import { Player } from './Player.js'
 import { Ground } from './Ground.js';
+import Stats from '../build/jsm/libs/stats.module.js';
+import GUI from '../libs/util/dat.gui.module.js';
 
 export class Game {
 
@@ -13,22 +15,38 @@ export class Game {
     #globalLight;
     #gameObjects;
     #mousePos;
+    #stats;
     #raycaster;
 
     constructor() {
         this.#init();
     }
 
+    #buildInterface() {    
+       const gui = new GUI();
+       gui.add(this.#scene.fog, 'far', 2000, 2500)
+          .name("Fog Far");
+    }
+
     #init() {
+
+        
+        const container = document.getElementById( 'container' );
+        
         this.#scene = new THREE.Scene();
-        this.#renderer = initRenderer('#1884d6');
+        this.#scene.fog = new THREE.Fog(0x607a8d, 2000, 2500)        
+        this.#renderer = initRenderer('#607a8d');
         this.#clock = new THREE.Timer();
-        this.#globalLight = new THREE.AmbientLight(0xffffff, 1);
+        this.#globalLight = new THREE.AmbientLight(0xffffff, 0.5);
         this.#gameObjects = [];
         this.#player = this.instantiate(new Player());
         this.#camera = this.#player.getCamera();
         this.#mousePos = new THREE.Vector2();
-        this.#scene.fog = new THREE.Fog(0xcccccc, 300, 1000)        
+        this.#stats = new Stats();
+        
+        container.append(this.#stats.dom);
+        
+        this.#buildInterface();
 
         this.#scene.add(this.#globalLight);
 
@@ -39,6 +57,8 @@ export class Game {
         };
 
         this.#raycaster = new THREE.Raycaster();
+
+        this.#scene.add(new THREE.AxesHelper(144))
 
         void this.instantiate(new Ground());
     }
@@ -70,6 +90,8 @@ export class Game {
     }
 
     run() {
+        this.#stats.update();
+
         requestAnimationFrame(this.run.bind(this));
         this.#clock.update();
         const dt = this.#clock.getDelta();

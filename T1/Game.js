@@ -24,7 +24,7 @@ export class Game {
 
     #buildInterface() {    
        const gui = new GUI();
-       gui.add(this.#scene.fog, 'far', 2000, 2500)
+       gui.add(this.#scene.fog, 'far', 1000, 3000)
           .name("Fog Far");
     }
 
@@ -34,21 +34,25 @@ export class Game {
         const container = document.getElementById( 'container' );
         
         this.#scene = new THREE.Scene();
-        this.#scene.fog = new THREE.Fog(0x607a8d, 2000, 2500)        
+        this.#scene.fog = new THREE.Fog(0x607a8d, 1000, 3000)        
         this.#renderer = initRenderer('#607a8d');
         this.#clock = new THREE.Timer();
-        this.#globalLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.#globalLight = new THREE.DirectionalLight(0xffffff, 1);
+        this.#globalLight.target.position.set(1, -1, 2);
         this.#gameObjects = [];
         this.#player = this.instantiate(new Player());
         this.#camera = this.#player.getCamera();
         this.#mousePos = new THREE.Vector2();
         this.#stats = new Stats();
-        
+
+        this.helper = new THREE.DirectionalLightHelper(this.#globalLight, 100)
+
         container.append(this.#stats.dom);
         
         this.#buildInterface();
 
         this.#scene.add(this.#globalLight);
+        this.#scene.add(this.helper);
 
         window.onresize = () => { onWindowResize(this.#camera, this.#renderer); };
         window.onmousemove = e => { 
@@ -57,8 +61,6 @@ export class Game {
         };
 
         this.#raycaster = new THREE.Raycaster();
-
-        this.#scene.add(new THREE.AxesHelper(144))
 
         void this.instantiate(new Ground());
     }

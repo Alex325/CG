@@ -5,7 +5,7 @@ import { Tree1, Tree2 } from './Tree.js';
 
 export class Ground extends GameObject {
 
-    #speed = 400;
+    #speed = 800;
     #groundplanes = [];
     #treeCount = 100;
     #width = 10000;
@@ -14,8 +14,7 @@ export class Ground extends GameObject {
     constructor() {
         super();
 
-
-        const planeGeometry = new THREE.PlaneGeometry(this.#width, this.#length);
+        const planeGeometry = new THREE.PlaneGeometry(this.#width, this.#length, 50, 10);
         const planeMaterial = setDefaultMaterial('green');
         planeMaterial.wireframe = true;
 

@@ -218,7 +218,7 @@ export class Player extends GameObject {
     }
 
     #rotateAirplane(delta, dt) {
-        this.#aimTarget.position.set(delta.x, delta.y, 10);
+        this.#aimTarget.position.set(/*delta.x*/ 0, /*delta.y*/ 0, 10);
 
         this.#aimTargetParent.lookAt(this.#aimTarget.position.clone().add(this._object.position));
 

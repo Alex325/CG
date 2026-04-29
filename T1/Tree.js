@@ -46,7 +46,6 @@ export class Tree2 extends GameObject {
 
     trunkHeight = 30;
 
-
     constructor() {
         super();
 

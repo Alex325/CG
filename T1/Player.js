@@ -81,14 +81,15 @@ export class Player extends GameObject {
 
         const spotlight = new THREE.SpotLight(0xffffff);
         spotlight.name = "spotlight"
+        spotlight.castShadow = true;
         spotlight.intensity = 1_000_000;
-        spotlight.distance = 2000;
-        spotlight.angle = THREE.MathUtils.DEG2RAD * 60;
+        spotlight.distance = 0;
+        spotlight.angle = THREE.MathUtils.DEG2RAD * 30;
         spotlight.penumbra = 0.5;
         spotlight.shadow.mapSize.width = 512;
         spotlight.shadow.mapSize.height = 512;
-        spotlight.shadow.camera.near = 0.1;
         spotlight.shadow.camera.far = 1000;
+        spotlight.shadow.bias = -0.0001;
         
         body.rotateX(THREE.MathUtils.degToRad(-90));
         wings.scale.set(5, 0.5, 0.5);
@@ -111,7 +112,7 @@ export class Player extends GameObject {
         engine3.rotateX(THREE.MathUtils.DEG2RAD * 90);
         engine4.rotateX(THREE.MathUtils.DEG2RAD * 90);
         spotlight.position.set(0, 0, 50);
-        spotlight.target.position.set(0, -1, 51)
+        spotlight.target.position.set(0, -1, 1);
         
         airplane.add(body);
         airplane.add(wings);
@@ -122,7 +123,8 @@ export class Player extends GameObject {
         airplane.add(engine3);
         airplane.add(engine4);
         airplane.add(spotlight);
-        airplane.add(spotlight.target);
+        spotlight.add(spotlight.target);
+
 
         this.#airplane = airplane;
 
@@ -179,7 +181,7 @@ export class Player extends GameObject {
     }
 
     update(dt, game) {
-        this.#resizePlane();       
+        this.#resizePlane();
 
         game.getRaycaster().setFromCamera(game.getMousePos(), this.#camera);
         const planeHit = game.getRaycaster().intersectObject(this.#collplane)[0];

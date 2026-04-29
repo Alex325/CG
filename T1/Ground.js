@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { createGroundPlaneXZ, setDefaultMaterial } from "../libs/util/util.js";
+import { createGroundPlaneWired, createGroundPlaneXZ, setDefaultMaterial } from "../libs/util/util.js";
 import { GameObject } from "./GameObject.js";
 import { Tree1, Tree2 } from './Tree.js';
+import Grid from '../libs/util/grid.js';
 
 export class Ground extends GameObject {
 
@@ -15,11 +16,17 @@ export class Ground extends GameObject {
         super();
 
         const planeGeometry = new THREE.PlaneGeometry(this.#width, this.#length, 50, 10);
-        const planeMaterial = setDefaultMaterial('green');
-        planeMaterial.wireframe = true;
+        const planeMaterial = new THREE.MeshPhongMaterial({
+            color: 'green',
+            polygonOffset: true,
+            polygonOffsetFactor: 1, // positive value pushes polygon further away
+            polygonOffsetUnits: 1
+        });
 
         for (let i = 0; i < 3; i++) {
             const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+            groundPlane.receiveShadow = true;
+            groundPlane.add(new Grid(this.#width, this.#length, 50, 10, 'white'))
             groundPlane.rotateX(THREE.MathUtils.degToRad(-90));
             groundPlane.translateY(-i*this.#length);
             this.#populate(groundPlane);
@@ -75,7 +82,7 @@ export class Ground extends GameObject {
             tree.getObj().position.set(
                 x,
                 y,
-                tree.getObj().position.z + tree.trunkHeight / 2
+                tree.getObj().position.z + tree.trunkHeight / 2 + 10
             );
 
             tree.getObj().scale.set(1, 1, 1 + heightFactor);

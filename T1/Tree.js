@@ -19,6 +19,16 @@ export class Tree1 extends GameObject {
         const leaves2 = new THREE.Mesh(leavesGeometry, leavesMaterial);
         const leaves3 = new THREE.Mesh(leavesGeometry, leavesMaterial);
 
+        trunk.castShadow = true;
+
+        leaves1.castShadow = true;
+        leaves2.castShadow = true;
+        leaves3.castShadow = true;
+
+        leaves1.receiveShadow = true;
+        leaves2.receiveShadow = true;
+        leaves3.receiveShadow = true;
+
         trunk.add(leaves1);
         leaves1.add(leaves2);
         leaves2.add(leaves3);
@@ -47,6 +57,9 @@ export class Tree2 extends GameObject {
 
         const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
         const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+
+        trunk.castShadow = true;
+        leaves.castShadow = true;
 
         trunk.add(leaves);
         

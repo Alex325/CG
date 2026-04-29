@@ -15,16 +15,16 @@ export class Game {
     #globalLight;
     #gameObjects;
     #mousePos;
-    #stats;
     #raycaster;
-
+    
+    #stats;
     constructor() {
         this.#init();
     }
 
     #buildInterface() {    
        const gui = new GUI();
-       gui.add(this.#scene.fog, 'far', 1000, 3000)
+       gui.add(this.#scene.fog, 'far', 1001, 3000)
           .name("Fog Far");
     }
 
@@ -36,23 +36,37 @@ export class Game {
         this.#scene = new THREE.Scene();
         this.#scene.fog = new THREE.Fog(0x607a8d, 1000, 3000)        
         this.#renderer = initRenderer('#607a8d');
+        this.#renderer.shadowMap.type = THREE.VSMShadowMap;
         this.#clock = new THREE.Timer();
+
         this.#globalLight = new THREE.DirectionalLight(0xffffff, 1);
-        this.#globalLight.target.position.set(1, -1, 2);
+        this.#globalLight.castShadow = true;
+        this.#globalLight.position.set(-10, 500, 0);
+        this.#globalLight.target.position.set(0, 0, 1000);
+        this.#globalLight.shadow.mapSize.width = 1024;
+        this.#globalLight.shadow.mapSize.height = 1024;
+        this.#globalLight.shadow.camera.left = -1000;
+        this.#globalLight.shadow.camera.right = 1000;
+        this.#globalLight.shadow.camera.top = 400;
+        this.#globalLight.shadow.camera.bottom = -250;
+        this.#globalLight.shadow.camera.far = 2000;
+        this.#globalLight.shadow.bias = -0.0001;
+
+
         this.#gameObjects = [];
         this.#player = this.instantiate(new Player());
         this.#camera = this.#player.getCamera();
         this.#mousePos = new THREE.Vector2();
         this.#stats = new Stats();
 
-        this.helper = new THREE.DirectionalLightHelper(this.#globalLight, 100)
-
         container.append(this.#stats.dom);
         
         this.#buildInterface();
 
         this.#scene.add(this.#globalLight);
-        this.#scene.add(this.helper);
+        this.#scene.add(this.#globalLight.target);
+
+        //this.#scene.add(new THREE.CameraHelper(this.#globalLight.shadow.camera));        
 
         window.onresize = () => { onWindowResize(this.#camera, this.#renderer); };
         window.onmousemove = e => { 

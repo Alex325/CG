@@ -81,13 +81,14 @@ export class Player extends GameObject {
 
         const spotlight = new THREE.SpotLight(0xffffff);
         spotlight.name = "spotlight"
-        spotlight.castShadow = true;
         spotlight.intensity = 1_000_000;
-        spotlight.distance = 0;
+        spotlight.distance = 2000;
         spotlight.angle = THREE.MathUtils.DEG2RAD * 60;
         spotlight.penumbra = 0.5;
         spotlight.shadow.mapSize.width = 512;
         spotlight.shadow.mapSize.height = 512;
+        spotlight.shadow.camera.near = 0.1;
+        spotlight.shadow.camera.far = 1000;
         
         body.rotateX(THREE.MathUtils.degToRad(-90));
         wings.scale.set(5, 0.5, 0.5);

@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { createGroundPlaneWired, createGroundPlaneXZ, setDefaultMaterial } from "../libs/util/util.js";
 import { GameObject } from "./GameObject.js";
 import { Tree1, Tree2 } from './Tree.js';
 import Grid from '../libs/util/grid.js';

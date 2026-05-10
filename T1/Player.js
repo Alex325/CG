@@ -4,31 +4,29 @@ import * as THREE from 'three';
 
 export class Player extends GameObject {
 
-    private camera: THREE.Camera;
-    airplane: THREE.Group;
-    collplane: THREE.Group;
-    aimTarget;
-    aimTargetParent;
-    prevPos;
-    speed = 500;
+    #camera;
+    #airplane;
+    #collplane;
+    #aimTarget;
+    #aimTargetParent;
+    #prevPos;
+    #speed = 500;
 
     constructor() {
         super();
-
-
         
-        this.createCamera();
-        this.buildAirplane();
-        this.buildPlane();
+        this.#createCamera();
+        this.#buildAirplane();
+        this.#buildPlane();
 
-        this.aimTargetParent = new THREE.Object3D();
-        this.aimTarget = new THREE.Object3D();
-        this.aimTargetParent.add(this.aimTarget);
+        this.#aimTargetParent = new THREE.Object3D();
+        this.#aimTarget = new THREE.Object3D();
+        this.#aimTargetParent.add(this.#aimTarget);
         
-        this._object.add(this.camera);
-        this._object.add(this.collplane);
-        this._object.add(this.airplane);
-        this._object.add(this.aimTargetParent);
+        this._object.add(this.#camera);
+        this._object.add(this.#collplane);
+        this._object.add(this.#airplane);
+        this._object.add(this.#aimTargetParent);
         
         this._object.position.set(0, 500, -200);
 
@@ -36,24 +34,24 @@ export class Player extends GameObject {
         
     }
     
-    createCamera() {
-        this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 3000);
-        this.camera.position.set(0, 0, -200);
-        this.camera.lookAt(new THREE.Vector3(0, 0, 0));
+    #createCamera() {
+        this.#camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 3000);
+        this.#camera.position.set(0, 0, -200);
+        this.#camera.lookAt(new THREE.Vector3(0, 0, 0));
     }
 
-    buildPlane() {
+    #buildPlane() {
         const collplaneGeometry = new THREE.PlaneGeometry(1, 1);
         const collplaneMaterial = setDefaultMaterial('black');
         collplaneMaterial.wireframe = false;
-        this.collplane = new THREE.Mesh(collplaneGeometry, collplaneMaterial);
-        this.collplane.material.side = THREE.DoubleSide;
-        this.collplane.visible = false;
-        this.collplane.position.set(0, 0, 200);
-        this.prevPos = this.collplane.position.clone();
+        this.#collplane = new THREE.Mesh(collplaneGeometry, collplaneMaterial);
+        this.#collplane.material.side = THREE.DoubleSide;
+        this.#collplane.visible = false;
+        this.#collplane.position.set(0, 0, 200);
+        this.#prevPos = this.#collplane.position.clone();
     }
 
-    buildAirplane() {
+    #buildAirplane() {
 
         const airplane = new THREE.Group();
 
@@ -67,15 +65,15 @@ export class Player extends GameObject {
         const wings = new THREE.Mesh(wingsGeometry, wingsMaterial);
 
         const winglet1Geometry = new THREE.SphereGeometry(20, 20, 20);
-        const winglet1Material = setDefaultMaterial('10cc10');
+        const winglet1Material = setDefaultMaterial('#10cc10');
         const winglet1 = new THREE.Mesh(winglet1Geometry, winglet1Material);
 
         const winglet2Geometry = new THREE.SphereGeometry(20, 20, 20);
-        const winglet2Material = setDefaultMaterial('10cc10');
+        const winglet2Material = setDefaultMaterial('#10cc10');
         const winglet2 = new THREE.Mesh(winglet2Geometry, winglet2Material);
 
         const engineGeometry = new THREE.CylinderGeometry(10, 5, 20);
-        const engineMaterial = setDefaultMaterial('076632');
+        const engineMaterial = setDefaultMaterial('#076632');
         const engine1 = new THREE.Mesh(engineGeometry, engineMaterial);
         const engine2 = new THREE.Mesh(engineGeometry, engineMaterial);
         const engine3 = new THREE.Mesh(engineGeometry, engineMaterial);
@@ -128,21 +126,21 @@ export class Player extends GameObject {
         spotlight.add(spotlight.target);
 
 
-        this.airplane = airplane;
+        this.#airplane = airplane;
 
-        this.airplane.position.set(0, 0, 90);
+        this.#airplane.position.set(0, 0, 90);
     }
 
-    resizePlane() {
-        const distance = this.camera.position.z - this.collplane.position.z;
-        const vFov = THREE.MathUtils.degToRad(this.camera.fov);
+    #resizePlane() {
+        const distance = this.#camera.position.z - this.#collplane.position.z;
+        const vFov = THREE.MathUtils.degToRad(this.#camera.fov);
         const height = 2 * Math.tan(vFov / 2) * distance;
-        const width = height * this.camera.aspect;
+        const width = height * this.#camera.aspect;
         
-        this.collplane.scale.set(width, height, 1);
+        this.#collplane.scale.set(width, height, 1);
     }
     
-    moveTowards(current, target, maxDistanceDelta) {
+    #moveTowards(current, target, maxDistanceDelta) {
         const direction = new THREE.Vector3().subVectors(target, current);
         const distance = direction.length();
 
@@ -152,83 +150,83 @@ export class Player extends GameObject {
     }
     
     getCamera() {
-        return this.camera;
+        return this.#camera;
     }
     
-    worldToViewport(pos) {
+    #worldToViewport(pos) {
         const vector = pos.clone();
-        return vector.project(this.camera);
+        return vector.project(this.#camera);
     }
     
-    viewportToWorld(pos) {
+    #viewportToWorld(pos) {
 
         const vector = pos.clone();
 
-        return vector.unproject(this.camera);
+        return vector.unproject(this.#camera);
         
     }
 
-    clamp(pos) {
+    #clamp(pos) {
         const local = pos.clone();
 
-        const viewport = this.worldToViewport(local);
+        const viewport = this.#worldToViewport(local);
 
         viewport.x = THREE.MathUtils.clamp(viewport.x, -0.72, 0.72);
         viewport.y = THREE.MathUtils.clamp(viewport.y, -0.72, 0.72);
 
-        const global = this.viewportToWorld(viewport);
+        const global = this.#viewportToWorld(viewport);
 
         return global;
 
     }
 
     update(dt, game) {
-        this.resizePlane();
+        this.#resizePlane();
 
-        game.getRaycaster().setFromCamera(game.getMousePos(), this.camera);
-        const planeHit = game.getRaycaster().intersectObject(this.collplane)[0];
+        game.getRaycaster().setFromCamera(game.getMousePos(), this.#camera);
+        const planeHit = game.getRaycaster().intersectObject(this.#collplane)[0];
 
         if (planeHit) {
             const { x, y, z } = planeHit.point;
 
-            const local = this.clamp(new THREE.Vector3(x, y, z));
+            const local = this.#clamp(new THREE.Vector3(x, y, z));
 
             const moveDir = local.clone().sub(this._object.position);
 
-            const ndcAirplane = this.worldToViewport(this.airplane.position.clone().add(this._object.position));
-            const ndcLocal = this.worldToViewport(local);
+            const ndcAirplane = this.#worldToViewport(this.#airplane.position.clone().add(this._object.position));
+            const ndcLocal = this.#worldToViewport(local);
             const ndcDelta = ndcLocal.sub(ndcAirplane);
-            this.prevPos = moveDir.clone();
+            this.#prevPos = moveDir.clone();
 
-            this.moveAirplane(moveDir, dt);
-            this.rotateAirplane((new THREE.Vector2(-ndcDelta.x, ndcDelta.y)).multiplyScalar(25), dt);
-            this.lean(Math.sign(Math.abs(ndcDelta.x) > 0.025 ? ndcDelta.x : 0), 70, dt);
+            this.#moveAirplane(moveDir, dt);
+            this.#rotateAirplane((new THREE.Vector2(-ndcDelta.x, ndcDelta.y)).multiplyScalar(25), dt);
+            this.#lean(Math.sign(Math.abs(ndcDelta.x) > 0.025 ? ndcDelta.x : 0), 70, dt);
         } else {
 
-            this.moveAirplane(this.prevPos, dt);
-            this.rotateAirplane(0, dt);
-            this.lean(0, 70, dt);
+            this.#moveAirplane(this.#prevPos, dt);
+            this.#rotateAirplane(0, dt);
+            this.#lean(0, 70, dt);
 
         }
     }
 
-    moveAirplane(dir, dt) {
-        this.airplane.position.copy(this.moveTowards(this.airplane.position, dir, this.speed * dt));
+    #moveAirplane(dir, dt) {
+        this.#airplane.position.copy(this.#moveTowards(this.#airplane.position, dir, this.#speed * dt));
     }
 
-    lean(deltaH, maxLean, dt) {
+    #lean(deltaH, maxLean, dt) {
 
-        this.airplane.rotation.z = THREE.MathUtils.lerp(this.airplane.rotation.z, THREE.MathUtils.DEG2RAD * (deltaH * maxLean), 1 - 0.01 ** dt);
+        this.#airplane.rotation.z = THREE.MathUtils.lerp(this.#airplane.rotation.z, THREE.MathUtils.DEG2RAD * (deltaH * maxLean), 1 - 0.01 ** dt);
 
     }
 
-    rotateAirplane(delta, dt) {
-        this.aimTarget.position.set(/*delta.x*/ 0, /*delta.y*/ 0, 10);
+    #rotateAirplane(delta, dt) {
+        this.#aimTarget.position.set(/*delta.x*/ 0, /*delta.y*/ 0, 10);
 
-        this.aimTargetParent.lookAt(this.aimTarget.position.clone().add(this._object.position));
+        this.#aimTargetParent.lookAt(this.#aimTarget.position.clone().add(this._object.position));
 
-        const targetQuaternion = this.aimTargetParent.quaternion;
+        const targetQuaternion = this.#aimTargetParent.quaternion;
 
-        this.airplane.quaternion.slerp(targetQuaternion, 1 - 0.05 ** dt);
+        this.#airplane.quaternion.slerp(targetQuaternion, 1 - 0.05 ** dt);
     }
 }

@@ -3,41 +3,115 @@ import { createGroundPlaneWired, createGroundPlaneXZ, setDefaultMaterial } from 
 import { GameObject } from "./GameObject.js";
 import { Tree1, Tree2 } from './Tree.js';
 import Grid from '../libs/util/grid.js';
+import { perlin2d, simplex2d } from './noise.js';
 
 export class Ground extends GameObject {
 
     #speed = 800;
+    #ngroundplanes = 3;
+    /**
+     * @type {THREE.Mesh[]}
+     */
     #groundplanes = [];
     #treeCount = 100;
     #width = 10000;
     #length = 2000;
+    #widthSegments = 250;
+    #lengthSegments = 50;
+    #globalOffsetZ = 0;
+    /**
+     * @type {THREE.Object3D[]}
+     */
+    #treePool;
+    #raycaster;
+
 
     constructor() {
         super();
 
-        const planeGeometry = new THREE.PlaneGeometry(this.#width, this.#length, 50, 10);
+        this.#raycaster = new THREE.Raycaster();
+
         const planeMaterial = new THREE.MeshPhongMaterial({
             color: 'green',
-            polygonOffset: true,
-            polygonOffsetFactor: 1, // positive value pushes polygon further away
+            polygonOffset: false,
+            polygonOffsetFactor: 1,
             polygonOffsetUnits: 1
         });
 
-        for (let i = 0; i < 3; i++) {
+        planeMaterial.side = THREE.DoubleSide;
+
+        this.#treePool = new Array(this.#treeCount*this.#ngroundplanes);
+
+        for (let i = 0; i < this.#treePool.length; i++) {
+            const temp = THREE.MathUtils.randInt(0, 1);
+            const tree = temp ? new Tree1() : new Tree2();
+            const heightFactor = (THREE.MathUtils.seededRandom() - 0.5) * 0.5 + 0.5;
+            tree.getObj().scale.set(1, 1, 1 + heightFactor);
+            this.#treePool[i] = tree.getObj();
+        }
+        
+        for (let i = 0; i < this.#ngroundplanes; i++) {
+            const planeGeometry = new THREE.PlaneGeometry(this.#width, this.#length, 250, 50);
             const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
             groundPlane.receiveShadow = true;
-            groundPlane.add(new Grid(this.#width, this.#length, 50, 10, 'white'))
-            groundPlane.rotateX(THREE.MathUtils.degToRad(-90));
-            groundPlane.translateY(-i*this.#length);
+            //groundPlane.add(new Grid(this.#width, this.#length, 50, 10, 'white'))
+            groundPlane.rotation.x = THREE.MathUtils.degToRad(-90);
+            groundPlane.position.z = i*this.#length;
+            groundPlane.userData.number = i;
+            this.#displace(groundPlane);
             this.#populate(groundPlane);
             this.#groundplanes.push(groundPlane);
         }
 
         this._object.add(...this.#groundplanes);
 
+    }
+
+    /**
+     * @param {number} x 
+     * @param {number} y 
+     */
+    #noise2d(x, y) {
+        return perlin2d(x, y);
+    }
+
+    /**
+     * 
+     * @param {THREE.Mesh} plane 
+     */
+    #displace(plane) {
+
+        const pos = plane.geometry.attributes.position;
+
+        const vertex = new THREE.Vector3();
+
+        const localX = plane.position.x;
+        const localZ = this.#globalOffsetZ;
+
+        for (let i = 0; i < pos.count; i++) {
+            vertex.fromBufferAttribute(pos, i);
+ 
+            const x = localX + vertex.x;
+            const z = localZ - vertex.y;
+
+            const height = this.#noise2d(x*0.001 + 0.54, z*0.001 + 0.45)*300;
+            
+            pos.setZ(i, height);
+
+        }
+
+        pos.needsUpdate = true;
+        plane.geometry.computeBoundingBox();
+        plane.updateMatrixWorld(true);
+        this.#globalOffsetZ += this.#length;
+        
 
     }
 
+    /**
+     * 
+     * @param {THREE.Mesh} plane 
+     */
     #populate(plane) {
 
         const placed = [];
@@ -53,57 +127,92 @@ export class Ground extends GameObject {
                 x = (THREE.MathUtils.seededRandom() - 0.5) * (this.#width * 0.9);
                 y = (THREE.MathUtils.seededRandom() - 0.5) * (this.#length * 0.9);
 
-                const temp = THREE.MathUtils.randInt(0, 1);
-                tree = temp ? new Tree1() : new Tree2();
-
+                
                 radius = 100; 
-
+                
                 valid = true;
-
+                
                 for (const p of placed) {
                     const dx = x - p.x;
                     const dy = y - p.y;
-
+                    
                     const minDist = (radius + p.radius) / 2;
-
+                    
                     if (dx * dx + dy * dy < minDist * minDist) {
                         valid = false;
+                        
                         break;
                     }
                 }
             }
-
+            
             if (!valid) continue;
 
+            tree = this.#treePool.pop();            
+            
             placed.push({ x, y, radius });
+            
+            const boundingBox = new THREE.Box3().setFromObject(tree);
+            const size = new THREE.Vector3();
+            boundingBox.getSize(size);
 
-            const heightFactor = (THREE.MathUtils.seededRandom() - 0.5) * 0.5 + 0.5;
+            const height = size.y;
 
-            tree.getObj().position.set(
-                x,
-                y,
-                tree.getObj().position.z + tree.trunkHeight / 2 + 10
+            const globalPlane = new THREE.Vector3(x, y, 0);
+
+            plane.localToWorld(globalPlane);
+            
+            globalPlane.y = -10000;
+
+            this.#raycaster.set(globalPlane, new THREE.Vector3(0, 1, 0));
+            const point = this.#raycaster.intersectObject(plane)[0].point;
+
+            plane.worldToLocal(point);
+            
+            const xPoint = point.x;
+            const yPoint = point.y;
+            const zPoint = point.z;
+            
+
+            tree.position.set(
+                xPoint,
+                yPoint,
+                zPoint + height / 2
             );
+            
 
-            tree.getObj().scale.set(1, 1, 1 + heightFactor);
-            plane.add(tree.getObj());
+            plane.add(tree);
         }
 
     }
 
+    /**
+     * 
+     * @param {THREE.Mesh} plane 
+     */
+    #reclaimTrees(plane) {
+        this.#treePool.push(...plane.children);
+        for (const tree of plane.children) {
+            tree.position.z = 10000000;
+        }
+        plane.children.length = 0;
+    }
+
     #rotatePlanes() {
 
-        this._object.translateZ(this.#length);
+        this._object.position.z = 0;
 
         const first = this.#groundplanes.shift();
         this.#groundplanes.push(first);
 
-        first.translateY(-(this.#groundplanes.length - 1)*this.#length);
 
-        for (let i = 0; i < this.#groundplanes.length - 1; i++) {
-            this.#groundplanes[i].translateY(this.#length);
+        for (let i = 0; i < this.#groundplanes.length; i++) {
+            this.#groundplanes[i].position.z = i*this.#length;
         }
 
+        this.#displace(first);
+        this.#reclaimTrees(first);
+        this.#populate(first);
 
     }
 
@@ -112,7 +221,7 @@ export class Ground extends GameObject {
         this._object.translateZ(-this.#speed*dt);
 
         if (this._object.position.z < -(0 + this.#length))
-            this.#rotatePlanes();
+            this.#rotatePlanes();        
 
     }
 }

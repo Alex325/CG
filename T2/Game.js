@@ -4,6 +4,7 @@ import { Player } from './Player.js'
 import { Ground } from './Ground.js';
 import Stats from '../build/jsm/libs/stats.module.js';
 import GUI from '../libs/util/dat.gui.module.js';
+import { seed } from './noise.js';
 
 export class Game {
 
@@ -30,6 +31,7 @@ export class Game {
 
     #init() {
 
+        seed(Math.random());
         
         const container = document.getElementById( 'container' );
         

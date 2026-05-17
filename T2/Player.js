@@ -81,7 +81,6 @@ export class Player extends GameObject {
 
         const spotlight = new THREE.SpotLight(0xffffff);
         spotlight.name = "spotlight"
-        spotlight.castShadow = true;
         spotlight.intensity = 1_000_000;
         spotlight.distance = 0;
         spotlight.angle = THREE.MathUtils.DEG2RAD * 30;
@@ -221,7 +220,10 @@ export class Player extends GameObject {
     }
 
     #rotateAirplane(delta, dt) {
-        this.#aimTarget.position.set(/*delta.x*/ 0, /*delta.y*/ 0, 10);
+        
+        if (delta)
+
+        this.#aimTarget.position.set(delta.x * 1.2 * 9/16, delta.y * 1.5, 30);
 
         this.#aimTargetParent.lookAt(this.#aimTarget.position.clone().add(this._object.position));
 

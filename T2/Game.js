@@ -13,11 +13,15 @@ export class Game {
     #clock;
     #player;
     #camera;
+    /**
+     * @type {THREE.DirectionalLight}
+     */
     #globalLight;
     #gameObjects;
     #mousePos;
     #raycaster;
-    
+    #fogfar = 3000;    
+
     #stats;
     constructor() {
         this.#init();
@@ -25,7 +29,7 @@ export class Game {
 
     #buildInterface() {    
        const gui = new GUI();
-       gui.add(this.#scene.fog, 'far', 1001, 3000)
+       gui.add(this.#scene.fog, 'far', 1001, this.#fogfar)
           .name("Fog Far");
     }
 
@@ -36,22 +40,23 @@ export class Game {
         const container = document.getElementById( 'container' );
         
         this.#scene = new THREE.Scene();
-        this.#scene.fog = new THREE.Fog(0x607a8d, 1000, 3000)        
+        this.#scene.fog = new THREE.Fog(0x607a8d, 1000, this.#fogfar)        
         this.#renderer = initRenderer('#607a8d');
         this.#renderer.shadowMap.type = THREE.VSMShadowMap;
         this.#clock = new THREE.Timer();
 
         this.#globalLight = new THREE.DirectionalLight(0xffffff, 1);
+        this.#globalLight.intensity = 5;
         this.#globalLight.castShadow = true;
-        this.#globalLight.position.set(-10, 500, 0);
-        this.#globalLight.target.position.set(0, 0, 1000);
+        this.#globalLight.position.set(-2000, 1000, this.#fogfar/2);
+        this.#globalLight.target.position.set(1000, -100, this.#fogfar/2);
         this.#globalLight.shadow.mapSize.width = 1024;
         this.#globalLight.shadow.mapSize.height = 1024;
-        this.#globalLight.shadow.camera.left = -1000;
-        this.#globalLight.shadow.camera.right = 1000;
+        this.#globalLight.shadow.camera.left = -this.#fogfar/2;
+        this.#globalLight.shadow.camera.right = this.#fogfar/2;
         this.#globalLight.shadow.camera.top = 400;
-        this.#globalLight.shadow.camera.bottom = -250;
-        this.#globalLight.shadow.camera.far = 2000;
+        this.#globalLight.shadow.camera.bottom = -1000;
+        this.#globalLight.shadow.camera.far = 4000;
         this.#globalLight.shadow.bias = -0.0001;
 
 

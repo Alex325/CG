@@ -16,20 +16,14 @@ export class Ground extends GameObject {
     #treeCount = 100;
     #width = 10000;
     #length = 2000;
-    #widthSegments = 250;
-    #lengthSegments = 50;
     #globalOffsetZ = 0;
     /**
      * @type {THREE.Object3D[]}
      */
     #treePool;
-    #raycaster;
-
 
     constructor() {
         super();
-
-        this.#raycaster = new THREE.Raycaster();
 
         const planeMaterial = new THREE.MeshPhongMaterial({
             color: 'green',
@@ -119,16 +113,19 @@ export class Ground extends GameObject {
         for (let i = 0; i < this.#treeCount; i++) {
             let attempts = 0;
             let valid = false;
-            let x, y, tree, radius;
+            let x, y, z, tree, radius;
 
             while (!valid && attempts < 50) {
                 attempts++;
 
-                x = (THREE.MathUtils.seededRandom() - 0.5) * (this.#width * 0.9);
-                y = (THREE.MathUtils.seededRandom() - 0.5) * (this.#length * 0.9);
+                const vertexi = THREE.MathUtils.randInt(0, plane.geometry.attributes.position.count - 1);
+                const vertex = new THREE.Vector3();
 
-                
-                radius = 100; 
+                vertex.fromBufferAttribute(plane.geometry.attributes.position, vertexi);
+
+                ({x, y, z} = vertex);
+
+                radius = 150; 
                 
                 valid = true;
                 
@@ -140,7 +137,6 @@ export class Ground extends GameObject {
                     
                     if (dx * dx + dy * dy < minDist * minDist) {
                         valid = false;
-                        
                         break;
                     }
                 }
@@ -148,38 +144,11 @@ export class Ground extends GameObject {
             
             if (!valid) continue;
 
-            tree = this.#treePool.pop();            
-            
             placed.push({ x, y, radius });
+
+            tree = this.#treePool.pop();
             
-            const boundingBox = new THREE.Box3().setFromObject(tree);
-            const size = new THREE.Vector3();
-            boundingBox.getSize(size);
-
-            const height = size.y;
-
-            const globalPlane = new THREE.Vector3(x, y, 0);
-
-            plane.localToWorld(globalPlane);
-            
-            globalPlane.y = -10000;
-
-            this.#raycaster.set(globalPlane, new THREE.Vector3(0, 1, 0));
-            const point = this.#raycaster.intersectObject(plane)[0].point;
-
-            plane.worldToLocal(point);
-            
-            const xPoint = point.x;
-            const yPoint = point.y;
-            const zPoint = point.z;
-            
-
-            tree.position.set(
-                xPoint,
-                yPoint,
-                zPoint + height / 2
-            );
-            
+            tree.position.set(x, y, z);
 
             plane.add(tree);
         }

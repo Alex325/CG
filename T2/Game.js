@@ -54,9 +54,9 @@ export class Game {
         this.#globalLight.shadow.mapSize.height = 1024;
         this.#globalLight.shadow.camera.left = -this.#fogfar/2;
         this.#globalLight.shadow.camera.right = this.#fogfar/2;
-        this.#globalLight.shadow.camera.top = 400;
+        this.#globalLight.shadow.camera.top = 600;
         this.#globalLight.shadow.camera.bottom = -1000;
-        this.#globalLight.shadow.camera.far = 4000;
+        this.#globalLight.shadow.camera.far = 5000;
         this.#globalLight.shadow.bias = -0.0001;
 
 

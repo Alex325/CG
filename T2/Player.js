@@ -4,13 +4,17 @@ import * as THREE from 'three';
 
 export class Player extends GameObject {
 
+    /**
+     * @type {THREE.PerspectiveCamera}
+     */
     #camera;
     #airplane;
     #collplane;
     #aimTarget;
     #aimTargetParent;
     #prevPos;
-    #speed = 500;
+    #speed = 600;
+    #bounds = new THREE.Vector2(100, 24);
 
     constructor() {
         super();
@@ -28,7 +32,7 @@ export class Player extends GameObject {
         this._object.add(this.#airplane);
         this._object.add(this.#aimTargetParent);
         
-        this._object.position.set(0, 500, -200);
+        this._object.position.set(0, 600, -200);
 
 
         
@@ -43,7 +47,7 @@ export class Player extends GameObject {
     #buildPlane() {
         const collplaneGeometry = new THREE.PlaneGeometry(1, 1);
         const collplaneMaterial = setDefaultMaterial('black');
-        collplaneMaterial.wireframe = false;
+        collplaneMaterial.wireframe = true;
         this.#collplane = new THREE.Mesh(collplaneGeometry, collplaneMaterial);
         this.#collplane.material.side = THREE.DoubleSide;
         this.#collplane.visible = false;
@@ -152,11 +156,21 @@ export class Player extends GameObject {
         return this.#camera;
     }
     
+    /**
+     * 
+     * @param {THREE.Vector3} pos 
+     * @returns {THREE.Vector3}
+     */
     #worldToViewport(pos) {
         const vector = pos.clone();
         return vector.project(this.#camera);
     }
     
+    /**
+     * 
+     * @param {THREE.Vector3} pos 
+     * @returns {THREE.Vector3}
+     */
     #viewportToWorld(pos) {
 
         const vector = pos.clone();
@@ -165,7 +179,12 @@ export class Player extends GameObject {
         
     }
 
-    #clamp(pos) {
+    /**
+     * 
+     * @param {THREE.Vector3} pos 
+     * @returns {THREE.Vector3}
+     */
+    #clampPlane(pos) {
         const local = pos.clone();
 
         const viewport = this.#worldToViewport(local);
@@ -188,10 +207,12 @@ export class Player extends GameObject {
         if (planeHit) {
             const { x, y, z } = planeHit.point;
 
-            const local = this.#clamp(new THREE.Vector3(x, y, z));
+            const local = this.#clampPlane(new THREE.Vector3(x, y, z));
 
-            const moveDir = local.clone().sub(this._object.position);
+            const moveDir = local.clone();
 
+            this._object.worldToLocal(moveDir);
+            
             const ndcAirplane = this.#worldToViewport(this.#airplane.position.clone().add(this._object.position));
             const ndcLocal = this.#worldToViewport(local);
             const ndcDelta = ndcLocal.sub(ndcAirplane);
@@ -200,13 +221,41 @@ export class Player extends GameObject {
             this.#moveAirplane(moveDir, dt);
             this.#rotateAirplane((new THREE.Vector2(-ndcDelta.x, ndcDelta.y)).multiplyScalar(25), dt);
             this.#lean(Math.sign(Math.abs(ndcDelta.x) > 0.025 ? ndcDelta.x : 0), 70, dt);
+            
+            if (Math.abs(ndcAirplane.x) > 0.5 && Math.sign(ndcDelta.x) === Math.sign(ndcAirplane.x)) {                
+                this.#followTarget(moveDir, dt, 0);
+            }
+            if (Math.abs(ndcAirplane.y) > 0.5 && Math.sign(ndcDelta.y) === Math.sign(ndcAirplane.y)) {
+                this.#followTarget(moveDir, dt, 1);
+            }
         } else {
-
             this.#moveAirplane(this.#prevPos, dt);
             this.#rotateAirplane(0, dt);
             this.#lean(0, 70, dt);
-
         }
+
+        this.#collplane.position.x = THREE.MathUtils.clamp(this.#collplane.position.x, -this.#bounds.x, this.#bounds.x);
+        this.#collplane.position.y = THREE.MathUtils.clamp(this.#collplane.position.y, -this.#bounds.y, this.#bounds.y);
+        this.#camera.position.x = THREE.MathUtils.clamp(this.#camera.position.x, -this.#bounds.x, this.#bounds.x);
+        this.#camera.position.y = THREE.MathUtils.clamp(this.#camera.position.y, -this.#bounds.y, this.#bounds.y);
+
+    }
+
+    /**
+     * 
+     * @param {THREE.Vector2} localPoint 
+     * @param {number} dt
+     */
+    #followTarget(localPoint, dt, axis)
+    {
+        if (axis === 1) {
+            this.#camera.position.y = THREE.MathUtils.damp(this.#camera.position.y, localPoint.y, 1, dt);
+        }
+        else {
+            this.#camera.position.x = THREE.MathUtils.damp(this.#camera.position.x, localPoint.x, 1, dt);
+        }
+        this.#collplane.position.x = this.#camera.position.x;
+        this.#collplane.position.y = this.#camera.position.y;
     }
 
     #moveAirplane(dir, dt) {
@@ -221,7 +270,7 @@ export class Player extends GameObject {
 
     #rotateAirplane(delta, dt) {
         
-        if (delta)
+        if (!delta) return;
 
         this.#aimTarget.position.set(delta.x * 1.2 * 9/16, delta.y * 1.5, 30);
 

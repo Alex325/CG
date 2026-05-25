@@ -1,6 +1,7 @@
 import { GameObject } from './GameObject.js';
 import { setDefaultMaterial } from '../libs/util/util.js';
 import * as THREE from 'three';
+import { Bullet } from './Bullet.js';
 
 export class Player extends GameObject {
 
@@ -15,6 +16,10 @@ export class Player extends GameObject {
     #prevPos;
     #speed = 600;
     #bounds = new THREE.Vector2(100, 24);
+    #isShooting = false;
+    #wantsToShoot = false;
+    #fireCooldown = 0.2; // seconds between shots
+    #cooldown = 0;
 
     constructor() {
         super();
@@ -34,8 +39,23 @@ export class Player extends GameObject {
         
         this._object.position.set(0, 600, -200);
 
+        this.#setupInput();
+    }
 
-        
+    #setupInput() {
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                // single-shot per key press; do not allow holding
+                this.#wantsToShoot = true;
+            }
+        });
+
+        // map left mouse button to shoot (single click)
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 0) {
+                this.#wantsToShoot = true;
+            }
+        });
     }
     
     #createCamera() {
@@ -58,6 +78,7 @@ export class Player extends GameObject {
     #buildAirplane() {
 
         const airplane = new THREE.Group();
+        airplane.name = 'airplane';
 
         const bodyGeometry = new THREE.CapsuleGeometry(20, 50, 20, 20);
         const bodyMaterial = setDefaultMaterial('cornflowerblue');
@@ -199,9 +220,11 @@ export class Player extends GameObject {
     }
 
     update(dt, game) {
+        // Only update player movement when cursor is pointer-locked
+        if (!game.isCursorLocked()) return;
         this.#resizePlane();
 
-        game.getRaycaster().setFromCamera(game.getMousePos(), this.#camera);
+        game.getRaycaster().setFromCamera(game.getAimNDC(), this.#camera);
         const planeHit = game.getRaycaster().intersectObject(this.#collplane)[0];
 
         if (planeHit) {
@@ -239,6 +262,18 @@ export class Player extends GameObject {
         this.#camera.position.x = THREE.MathUtils.clamp(this.#camera.position.x, -this.#bounds.x, this.#bounds.x);
         this.#camera.position.y = THREE.MathUtils.clamp(this.#camera.position.y, -this.#bounds.y, this.#bounds.y);
 
+        // cooldown timer
+        if (this.#cooldown > 0) this.#cooldown = Math.max(0, this.#cooldown - dt);
+
+        // attempt a single shot if requested and cooldown elapsed
+        if (this.#wantsToShoot) {
+            if (this.#cooldown <= 0) {
+                this.#fireForward(game);
+                this.#cooldown = this.#fireCooldown;
+            }
+            // consume the input so holding won't spam
+            this.#wantsToShoot = false;
+        }
     }
 
     /**
@@ -279,5 +314,22 @@ export class Player extends GameObject {
         const targetQuaternion = this.#aimTargetParent.quaternion;
 
         this.#airplane.quaternion.slerp(targetQuaternion, 1 - 0.05 ** dt);
+    }
+
+    #fireForward(game) {
+        // fire bullet toward the crosshair using the camera ray
+        const airplaneWorldPos = new THREE.Vector3();
+        this.#airplane.getWorldPosition(airplaneWorldPos);
+
+        // ensure raycaster matches current aim NDC and camera
+        game.getRaycaster().setFromCamera(game.getAimNDC(), this.#camera);
+        const dir = game.getRaycaster().ray.direction.clone().normalize();
+
+        // spawn slightly in front of the airplane so it doesn't immediately collide
+        const spawnPos = airplaneWorldPos.clone().add(dir.clone().multiplyScalar(30));
+
+        const bulletSpeed = 1000;
+        const bullet = new Bullet(spawnPos, dir, 'player', bulletSpeed);
+        game.instantiate(bullet);
     }
 }

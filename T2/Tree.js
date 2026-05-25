@@ -10,9 +10,9 @@ export class Tree1 extends GameObject {
         super();
 
         const trunkGeometry = new THREE.CylinderGeometry(20, 20, this.trunkHeight);
-        const trunkMaterial = setDefaultMaterial('brown');
+        const trunkMaterial = new THREE.MeshPhongMaterial({ color: 'brown' });
         const leavesGeometry = new THREE.ConeGeometry(50, 40, 15);
-        const leavesMaterial = setDefaultMaterial('limegreen');
+        const leavesMaterial = new THREE.MeshPhongMaterial({ color: 'limegreen', shininess: 1000 });
 
         const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
         const leaves1 = new THREE.Mesh(leavesGeometry, leavesMaterial);
@@ -50,9 +50,9 @@ export class Tree2 extends GameObject {
         super();
 
         const trunkGeometry = new THREE.CylinderGeometry(20, 20, this.trunkHeight);
-        const trunkMaterial = setDefaultMaterial('brown');
+        const trunkMaterial = new THREE.MeshPhongMaterial({ color: 'brown' });
         const leavesGeometry = new THREE.SphereGeometry(40);
-        const leavesMaterial = setDefaultMaterial('limegreen');
+        const leavesMaterial = new THREE.MeshPhongMaterial({ color: 'limegreen', shininess: 1000 });
 
         const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
         const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);

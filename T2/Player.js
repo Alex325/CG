@@ -18,7 +18,7 @@ export class Player extends GameObject {
     #bounds = new THREE.Vector2(100, 24);
     #isShooting = false;
     #wantsToShoot = false;
-    #fireCooldown = 0.2; // seconds between shots
+    #fireCooldown = 0.5; // seconds between shots (2 per second)
     #cooldown = 0;
 
     constructor() {
@@ -43,16 +43,20 @@ export class Player extends GameObject {
     }
 
     #setupInput() {
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
-                // single-shot per key press; do not allow holding
-                this.#wantsToShoot = true;
-            }
-        });
-
-        // map left mouse button to shoot (single click)
+        // LMB hold fires at fixed interval
         document.addEventListener('mousedown', (e) => {
             if (e.button === 0) {
+                this.#isShooting = true;
+            }
+        });
+        document.addEventListener('mouseup', (e) => {
+            if (e.button === 0) {
+                this.#isShooting = false;
+            }
+        });
+        // fallback: Space single-shot
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
                 this.#wantsToShoot = true;
             }
         });
@@ -81,24 +85,24 @@ export class Player extends GameObject {
         airplane.name = 'airplane';
 
         const bodyGeometry = new THREE.CapsuleGeometry(20, 50, 20, 20);
-        const bodyMaterial = setDefaultMaterial('cornflowerblue');
+        const bodyMaterial = new THREE.MeshPhongMaterial({ color: 'cornflowerblue', shininess: 1000 });
         const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
 
 
         const wingsGeometry = new THREE.SphereGeometry(20, 20, 20);
-        const wingsMaterial = setDefaultMaterial('lightgreen');
+        const wingsMaterial = new THREE.MeshPhongMaterial({ color: 'lightgreen' });
         const wings = new THREE.Mesh(wingsGeometry, wingsMaterial);
 
         const winglet1Geometry = new THREE.SphereGeometry(20, 20, 20);
-        const winglet1Material = setDefaultMaterial('#10cc10');
+        const winglet1Material = new THREE.MeshPhongMaterial({ color: '#10cc10' });
         const winglet1 = new THREE.Mesh(winglet1Geometry, winglet1Material);
 
         const winglet2Geometry = new THREE.SphereGeometry(20, 20, 20);
-        const winglet2Material = setDefaultMaterial('#10cc10');
+        const winglet2Material = new THREE.MeshPhongMaterial({ color: '#10cc10' });
         const winglet2 = new THREE.Mesh(winglet2Geometry, winglet2Material);
 
         const engineGeometry = new THREE.CylinderGeometry(10, 5, 20);
-        const engineMaterial = setDefaultMaterial('#076632');
+        const engineMaterial = new THREE.MeshPhongMaterial({ color: '#076632' });
         const engine1 = new THREE.Mesh(engineGeometry, engineMaterial);
         const engine2 = new THREE.Mesh(engineGeometry, engineMaterial);
         const engine3 = new THREE.Mesh(engineGeometry, engineMaterial);
@@ -220,7 +224,6 @@ export class Player extends GameObject {
     }
 
     update(dt, game) {
-        // Only update player movement when cursor is pointer-locked
         if (!game.isCursorLocked()) return;
         this.#resizePlane();
 
@@ -245,10 +248,10 @@ export class Player extends GameObject {
             this.#rotateAirplane((new THREE.Vector2(-ndcDelta.x, ndcDelta.y)).multiplyScalar(25), dt);
             this.#lean(Math.sign(Math.abs(ndcDelta.x) > 0.025 ? ndcDelta.x : 0), 70, dt);
             
-            if (Math.abs(ndcAirplane.x) > 0.5 && Math.sign(ndcDelta.x) === Math.sign(ndcAirplane.x)) {                
+            if (Math.abs(ndcAirplane.x) > 0.5 && Math.sign(ndcDelta.x) === Math.sign(ndcAirplane.x) || true) {                
                 this.#followTarget(moveDir, dt, 0);
             }
-            if (Math.abs(ndcAirplane.y) > 0.5 && Math.sign(ndcDelta.y) === Math.sign(ndcAirplane.y)) {
+            if (Math.abs(ndcAirplane.y) > 0.5 && Math.sign(ndcDelta.y) === Math.sign(ndcAirplane.y) || true) {
                 this.#followTarget(moveDir, dt, 1);
             }
         } else {
@@ -262,16 +265,17 @@ export class Player extends GameObject {
         this.#camera.position.x = THREE.MathUtils.clamp(this.#camera.position.x, -this.#bounds.x, this.#bounds.x);
         this.#camera.position.y = THREE.MathUtils.clamp(this.#camera.position.y, -this.#bounds.y, this.#bounds.y);
 
-        // cooldown timer
         if (this.#cooldown > 0) this.#cooldown = Math.max(0, this.#cooldown - dt);
 
-        // attempt a single shot if requested and cooldown elapsed
+        if (this.#isShooting && this.#cooldown <= 0) {
+            this.#fireForward(game);
+            this.#cooldown = this.#fireCooldown;
+        }
         if (this.#wantsToShoot) {
             if (this.#cooldown <= 0) {
                 this.#fireForward(game);
                 this.#cooldown = this.#fireCooldown;
             }
-            // consume the input so holding won't spam
             this.#wantsToShoot = false;
         }
     }
@@ -317,19 +321,17 @@ export class Player extends GameObject {
     }
 
     #fireForward(game) {
-        // fire bullet toward the crosshair using the camera ray
         const airplaneWorldPos = new THREE.Vector3();
         this.#airplane.getWorldPosition(airplaneWorldPos);
 
-        // ensure raycaster matches current aim NDC and camera
         game.getRaycaster().setFromCamera(game.getAimNDC(), this.#camera);
-        const dir = game.getRaycaster().ray.direction.clone().normalize();
+        const dir = (new THREE.Vector3(0, 0, 1)).applyQuaternion(this.#airplane.quaternion).normalize();
 
-        // spawn slightly in front of the airplane so it doesn't immediately collide
         const spawnPos = airplaneWorldPos.clone().add(dir.clone().multiplyScalar(30));
 
         const bulletSpeed = 1000;
-        const bullet = new Bullet(spawnPos, dir, 'player', bulletSpeed);
+        const bullet = new Bullet(spawnPos, dir, this.#airplane.position.clone().add(dir), 'player', bulletSpeed);
+        console.log(bullet._object.rotation);
         game.instantiate(bullet);
     }
 }

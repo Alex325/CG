@@ -2,10 +2,14 @@ import { GameObject } from "./GameObject.js";
 import * as THREE from 'three';
 import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
 import { Bullet } from './Bullet.js';
+import { Game } from "./Game.js";
 
 export class Nave extends GameObject {
     #fireTimer = 0;
-    #fireInterval = 1; // fire every 1 second
+    #fireInterval = 1;
+    #fading = false;
+    #fadeTime = 0.5;
+    #fadeElapsed = 0;
 
     constructor() {
         super();
@@ -20,81 +24,85 @@ export class Nave extends GameObject {
         });
     }
 
+    /**
+     * 
+     * @param {number} dt 
+     * @param {Game} game 
+     * @returns 
+     */
     update(dt, game) {
-        try {
-            const player = game.getPlayer && game.getPlayer();
-            if (!player) return;
-
-            const playerPos = new THREE.Vector3();
-            player.getObj().getWorldPosition(playerPos);
-
-            const obj = this.getObj();
-            if (!obj) return;
-
-            // Orient the ship toward the player's world position
-            obj.lookAt(playerPos);
-
-            // Move with constant velocity if set
-            if (this._velocity) {
-                const delta = this._velocity.clone().multiplyScalar(dt);
-                obj.position.add(delta);
-            }
-
-            // Fire bullets at player every 1 second
-            this.#fireTimer += dt;
-            if (this.#fireTimer >= this.#fireInterval) {
-                this.#fireTimer = 0;
-                this.#fireAtPlayer(game, playerPos);
-            }
-
-            // Despawn when the ship moves behind the camera (use camera forward projection)
-            const cam = game.getPlayer().getCamera();
-            const camWorld = new THREE.Vector3();
-            cam.getWorldPosition(camWorld);
-
-            const camDir = new THREE.Vector3();
-            cam.getWorldDirection(camDir);
-
-            const objWorld = new THREE.Vector3();
-            obj.getWorldPosition(objWorld);
-
-            // projection of vector (cam -> obj) onto camera forward direction
-            const toObj = objWorld.clone().sub(camWorld);
-            const forwardDist = toObj.dot(camDir);
-
-            // if forwardDist is negative and sufficiently behind, destroy
-            // increase threshold so enemies are not removed too early
-            if (objWorld.z < -300) {
+        if (this.#fading) {
+            this.#fadeElapsed += dt;
+            const alpha = 1 - (this.#fadeElapsed / this.#fadeTime);
+            this.#setOpacity(Math.max(0, alpha));
+            if (this.#fadeElapsed >= this.#fadeTime) {
                 game.destroy(this);
             }
-            
+
+            console.log(alpha);
+
+            return;
         }
-        catch (e) {
-            // ignore errors during lookAt
+        
+        const player = game.getPlayer && game.getPlayer();
+        if (!player) return;
+
+        const playerPos = new THREE.Vector3();
+        player.getObj().children[2].getWorldPosition(playerPos);
+
+        const obj = this.getObj();
+        if (!obj) return;
+
+
+        if (this._velocity) {
+            const delta = this._velocity.clone().multiplyScalar(dt);
+            obj.position.add(delta);
         }
+
+        const objWorld = new THREE.Vector3();
+        obj.getWorldPosition(objWorld);
+
+        this.#fireTimer += dt;
+        if (this.#fireTimer >= this.#fireInterval && objWorld.z > 0) {
+            this.#fireTimer = 0;
+            this.#fireAtPlayer(game, playerPos);
+        }
+
+
+        if (objWorld.z < -500) {                
+            game.destroy(this);
+        }
+    }
+
+    fadeOut() {
+        this.#fading = true;
+        this.#fadeElapsed = 0;
+        const material = this._object.children[0].children[0].material;
+        material.transparent = true;
+    }
+
+    /**
+     * 
+     * @param {number} alpha 
+     */
+    #setOpacity(alpha) {
+        const material = this._object.children[0].children[0].material;
+        material.transparent = true;
+        material.opacity = alpha;
+        material.needsUpdate = true;
+
     }
 
     #fireAtPlayer(game, playerPos) {
         const objPos = this._object.position.clone();
         const dirToPlayer = playerPos.clone().sub(objPos).normalize();
 
-        // fire a cone of 3 bullets spread around the direction
-        const spreadAngle = THREE.MathUtils.degToRad(15); // 15 degrees spread
-        const bulletSpeed = 400;
+        const bulletSpeed = 700;
 
-        // create 3 bullets in a cone
-        for (let i = -1; i <= 1; i++) {
-            const offset = i * spreadAngle;
-            const rotAxis = new THREE.Vector3(0, 1, 0); // rotate around Y
-            const bulletDir = dirToPlayer.clone();
-            
-            // apply rotation offset
-            const quat = new THREE.Quaternion();
-            quat.setFromAxisAngle(rotAxis, offset);
-            bulletDir.applyQuaternion(quat);
+        const bulletDir = dirToPlayer.clone();        
 
-            const bullet = new Bullet(objPos.clone(), bulletDir, 'enemy', bulletSpeed);
-            game.instantiate(bullet);
-        }
+        const bullet = new Bullet(objPos.clone(), bulletDir, playerPos, 'enemy', bulletSpeed);
+        game.instantiate(bullet);
     }
 }
+

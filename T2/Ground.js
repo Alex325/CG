@@ -4,7 +4,7 @@ import { GameObject } from "./GameObject.js";
 import { Tree1, Tree2 } from './Tree.js';
 import { Nave } from './Nave.js';
 import Grid from '../libs/util/grid.js';
-import { perlin2d, simplex2d } from './noise.js';
+import { perlin2d } from './noise.js';
 
 export class Ground extends GameObject {
 
@@ -57,7 +57,7 @@ export class Ground extends GameObject {
             groundPlane.userData.spawned = false;
             this.#displace(groundPlane);
             this.#populate(groundPlane);
-            // enemies will be spawned later in update(), so they can be associated with Game
+
             this.#groundplanes.push(groundPlane);
         }
         
@@ -75,54 +75,32 @@ export class Ground extends GameObject {
            for (let i = 0; i < 2; i++) {
                const nave = new Nave();
                game.instantiate(nave);
-
-               // compute spawn position at player's current height and at one side of the camera frustum
-               const camera = game.getPlayer().getCamera();
-               const camWorld = new THREE.Vector3();
-               camera.getWorldPosition(camWorld);
-
                const playerWorld = new THREE.Vector3();
                game.getPlayer().getObj().getWorldPosition(playerWorld);
 
                const base = new THREE.Vector3();
                plane.getWorldPosition(base);
 
-               // spawn slightly beyond the far edge of the plane (use world coordinates)
                const halfLen = this.#length * 0.5;
                const spawnZ = base.z + halfLen + THREE.MathUtils.randFloat(50, 150);
 
-               // compute frustum width at spawn distance (use world distance)
-               const distance = Math.max(1, Math.abs(spawnZ - camWorld.z));
-               const vFov = THREE.MathUtils.degToRad(camera.fov);
-               const frustumHeight = 2 * Math.tan(vFov / 2) * distance;
-               const frustumWidth = frustumHeight * camera.aspect;
+               const side = i % 2 === 0 ? -1 : 1;
+               const spawnX = playerWorld.x + side * this.#width * 0.2;
+               const spawnY = playerWorld.y + THREE.MathUtils.randFloat(-150, 150);
 
-               const side = i % 2 === 0 ? -1 : 1; // left, right
-               const spawnX = playerWorld.x + side * this.#width * 0.3;
-               const spawnY = playerWorld.y;
+               const spawnPos = new THREE.Vector3(spawnX, spawnY, spawnZ);
 
-               const worldPos = new THREE.Vector3(spawnX, spawnY, spawnZ);
-
-               console.log(worldPos);
-
-               nave.getObj().position.copy(worldPos);
-               nave.getObj().rotateX(90*THREE.MathUtils.DEG2RAD);
-               nave.getObj().rotateY(90*THREE.MathUtils.DEG2RAD);
-
-               // orient the ship container toward the player's current world position at spawn
-               nave.getObj().lookAt(playerWorld);
+               nave.getObj().position.copy(spawnPos);
                nave.getObj().scale.multiplyScalar(10);
-
-               // compute end point on the opposite side of the camera and slightly behind it
-               const endX = playerWorld.x - side * this.#width * 0.3;
-               const endZ = playerWorld.z - 300; // behind camera
+               
+               const endX = -side * 500;
+               const endZ = -500;
                const endPoint = new THREE.Vector3(endX, spawnY, endZ);
-
-               console.log(endPoint);
+               nave.getObj().lookAt(endPoint);
                
 
-               const dir = endPoint.clone().sub(worldPos).normalize();
-               const speed = 600; // units per second
+               const dir = endPoint.clone().sub(spawnPos).normalize();
+               const speed = 600;
 
                nave._velocity = dir.multiplyScalar(speed);
                nave._endPoint = endPoint;
@@ -236,17 +214,6 @@ export class Ground extends GameObject {
         plane.remove(...plane.children);
     }
 
-    #reclaimEnemies(plane, game) {
-        if (!plane.userData || !plane.userData.enemies) return;
-
-        for (const enemy of plane.userData.enemies) {
-            game.destroy(enemy);
-        }
-
-        plane.userData.enemies = [];
-        plane.userData.spawned = false;
-    }
-
     #rotatePlanes(game) {
 
         this._object.position.z = 0;
@@ -261,11 +228,16 @@ export class Ground extends GameObject {
 
         this.#displace(first);
         this.#reclaimTrees(first);
-        this.#reclaimEnemies(first, game);
+        this.#spawnEnemies(first, game);
         this.#populate(first);
 
     }
 
+    /**
+     * 
+     * @param {number} dt 
+     * @param {Game} game 
+     */
     update(dt, game) {
 
         this._object.translateZ(-this.#speed*dt);
@@ -273,7 +245,6 @@ export class Ground extends GameObject {
         if (this._object.position.z < -(0 + this.#length))
             this.#rotatePlanes(game);
 
-        // Spawn enemies for planes that don't have them yet (ensures we have access to Game)
         for (const plane of this.#groundplanes) {
             if (!plane.userData.spawned) {
                 this.#spawnEnemies(plane, game);

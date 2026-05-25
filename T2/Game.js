@@ -28,7 +28,7 @@ export class Game {
     #stats;
     paused = false;
     speedMultiplier = 1;
-    sensitivity = 20;
+    sensitivity = 30;
     #cursorLocked = false;
     hitCount = 0;
 
@@ -41,7 +41,7 @@ export class Game {
         gui.add(this.#scene.fog, 'far', 1001, this.#fogfar)
             .name("Fog Far");
         gui.add(this, 'paused').name("Paused (ESC)");
-        gui.add(this, 'speedMultiplier', { Normal: 1, '2x': 2, '3x': 3 }).name("Speed (1/2/3)");
+        gui.add(this, 'speedMultiplier', { Normal: 1, '2x': 1.5, '3x': 2 }).name("Speed (1/2/3)");
         gui.add(this, 'sensitivity', 1, 40).name("Sensitivity");
         gui.add(this, 'hitCount').name("Player Hits").listen();
     }
@@ -89,28 +89,15 @@ export class Game {
         this.#scene.add(this.#globalLight.target);
 
         window.onresize = () => { onWindowResize(this.#camera, this.#renderer); };
-        window.onmousemove = e => {
-            this.#mousePos.x = (e.clientX / window.innerWidth) * 2 - 1;
-            this.#mousePos.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        };
-
+        this._crosshairDrawState = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        this._crosshairTarget = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        this._crosshairEasing = 0.18;
         document.addEventListener('mousemove', (e) => {
             if (!this.#cursorLocked) return;
-
-            this._crosshairPos.x += e.movementX * this.sensitivity;
-            this._crosshairPos.y += e.movementY * this.sensitivity;
-
-            this._crosshairPos.x = Math.max(0, Math.min(window.innerWidth, this._crosshairPos.x));
-            this._crosshairPos.y = Math.max(0, Math.min(window.innerHeight, this._crosshairPos.y));
-
-            if (this._crosshair) {
-                this._crosshair.style.left = `${this._crosshairPos.x}px`;
-                this._crosshair.style.top = `${this._crosshairPos.y}px`;
-                this._crosshair.style.transform = 'translate(-50%, -50%)';
-            }
-
-            this._aimNDC.x = (this._crosshairPos.x / window.innerWidth) * 2 - 1;
-            this._aimNDC.y = -(this._crosshairPos.y / window.innerHeight) * 2 + 1;
+            this._crosshairTarget.x += e.movementX * this.sensitivity;
+            this._crosshairTarget.y += e.movementY * this.sensitivity;
+            this._crosshairTarget.x = Math.max(0, Math.min(window.innerWidth, this._crosshairTarget.x));
+            this._crosshairTarget.y = Math.max(0, Math.min(window.innerHeight, this._crosshairTarget.y));
         });
 
         this.#raycaster = new THREE.Raycaster();
@@ -147,8 +134,8 @@ export class Game {
                 }
             }
             if (e.key === '1') this.speedMultiplier = 1;
-            if (e.key === '2') this.speedMultiplier = 2;
-            if (e.key === '3') this.speedMultiplier = 4;
+            if (e.key === '2') this.speedMultiplier = 1.5;
+            if (e.key === '3') this.speedMultiplier = 2;
         });
 
         document.addEventListener('click', () => {
@@ -182,53 +169,42 @@ export class Game {
     #setupCrosshair() {
         const canvas = document.createElement('canvas');
         canvas.id = 'crosshair';
-        canvas.width = 60;
-        canvas.height = 60;
+        canvas.width = 100;
+        canvas.height = 100;
         canvas.style.cssText = `
             position: fixed;
             left: 50%;
             top: 50%;
-            width: 60px;
-            height: 60px;
+            width: 100px;
+            height: 100px;
             pointer-events: none;
             z-index: 999;
             transform: translate(-50%, -50%);
         `;
-
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, 60, 60);
-        ctx.strokeStyle = '#00ff00';
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
-
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.12)';
-        ctx.beginPath();
-        ctx.arc(30, 30, 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(30, 6);
-        ctx.lineTo(30, 22);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(30, 38);
-        ctx.lineTo(30, 54);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(6, 30);
-        ctx.lineTo(22, 30);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(38, 30);
-        ctx.lineTo(54, 30);
-        ctx.stroke();
-
-        document.body.appendChild(canvas);
         this._crosshair = canvas;
+        document.body.appendChild(canvas);
+
+        this._crosshairDraw = () => {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 100, 100);
+            ctx.save();
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            const s = 40, l = 20, c = 50;
+            ctx.beginPath();
+            ctx.moveTo(c-s, c-s); ctx.lineTo(c+s, c-s); ctx.lineTo(c+s, c+s); ctx.lineTo(c-s, c+s); ctx.closePath();
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(c-s, c-s); ctx.lineTo(c-s+l, c-s+l);
+            ctx.moveTo(c+s, c-s); ctx.lineTo(c+s-l, c-s+l);
+            ctx.moveTo(c+s, c+s); ctx.lineTo(c+s-l, c+s-l);
+            ctx.moveTo(c-s, c+s); ctx.lineTo(c-s+l, c+s-l);
+            ctx.stroke();
+            ctx.restore();
+        };
+        this._crosshairDraw();
     }
 
     #checkCollisions() {
@@ -250,7 +226,6 @@ export class Game {
                     this.destroy(bullet);                    
                 }
             } else if (ownerType === 'player') {
-                // Find Ground object and check its enemy list
                 const ground = this.#gameObjects.find(obj => obj.constructor.name === 'Ground');
                 if (ground && ground.getObj()) {
                     const planes = ground.getObj().children;
@@ -265,7 +240,11 @@ export class Game {
 
                                 if (enemyBB.intersectsBox(bulletBB)) {
                                     this.destroy(bullet);
-                                    this.destroy(enemy);
+                                    if (enemy.fadeOut) {
+                                        enemy.fadeOut();
+                                    } else {
+                                        this.destroy(enemy);
+                                    }
                                     break;
                                 }
                             }
@@ -288,6 +267,10 @@ export class Game {
         return this.#cursorLocked;
     }
 
+    /**
+     * 
+     * @returns {Player}
+     */
     getPlayer() {
         return this.#player;
     }
@@ -336,10 +319,27 @@ export class Game {
 
     run() {
         this.#stats.update();
-
         requestAnimationFrame(this.run.bind(this));
         this.#clock.update();
         const dt = this.#clock.getDelta();
+        // Easing for crosshair
+        if (this._crosshair && this._crosshairDrawState && this._crosshairTarget) {
+            this._crosshairDrawState.x += (this._crosshairTarget.x - this._crosshairDrawState.x) * this._crosshairEasing;
+            this._crosshairDrawState.y += (this._crosshairTarget.y - this._crosshairDrawState.y) * this._crosshairEasing;
+            // Clamp
+            this._crosshairDrawState.x = Math.max(0, Math.min(window.innerWidth, this._crosshairDrawState.x));
+            this._crosshairDrawState.y = Math.max(0, Math.min(window.innerHeight, this._crosshairDrawState.y));
+
+            this._crosshair.style.left = `${this._crosshairDrawState.x}px`;
+            this._crosshair.style.top = `${this._crosshairDrawState.y}px`;
+            this._crosshair.style.transform = 'translate(-50%, -50%)';
+            this._crosshair.style.opacity = this.#cursorLocked ? '1' : '0';
+
+            this._aimNDC.x = (this._crosshairDrawState.x / window.innerWidth) * 2 - 1;
+            this._aimNDC.y = -(this._crosshairDrawState.y / window.innerHeight) * 2 + 1;
+
+            if (this._crosshairDraw) this._crosshairDraw();
+        }
         this.#udpate(dt);
         this.#render();
     }

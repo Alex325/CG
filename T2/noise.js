@@ -1,7 +1,6 @@
 class Grad {
 
     /**
-     * 
      * @param {number} x 
      * @param {number} y 
      * @param {number} z 
@@ -18,13 +17,13 @@ class Grad {
 
 }
 
-let grad3 = [
+const grad3 = [
         new Grad(1,1,0),new Grad(-1,1,0),new Grad(1,-1,0),new Grad(-1,-1,0),
         new Grad(1,0,1),new Grad(-1,0,1),new Grad(1,0,-1),new Grad(-1,0,-1),
         new Grad(0,1,1),new Grad(0,-1,1),new Grad(0,1,-1),new Grad(0,-1,-1),
     ];
 
-let p = [151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,
+const p = [151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,
         30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,
         252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,
         168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,
@@ -41,9 +40,6 @@ let p = [151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,
 
 let perm = new Array(512);
 let gradP = new Array(512);
-
-const F2 = 0.5*(Math.sqrt(3)-1),
-      G2 = (3-Math.sqrt(3))/6;
 
 export function seed(seed) {
     if (seed > 0 && seed < 1) {
@@ -87,82 +83,19 @@ export function perlin2d(x, y) {
     x = x - X;
     y = y - Y;
     
-    
     X = X & 0b11111111;
     Y = Y & 0b11111111;
     
-    
-    let n00 = gradP[X+perm[Y]].dot2(x, y);
-    let n01 = gradP[X+perm[Y+1]].dot2(x, y-1);
-    let n10 = gradP[X+1+perm[Y]].dot2(x-1, y);
-    let n11 = gradP[X+1+perm[Y+1]].dot2(x-1, y-1);
+    const n00 = gradP[X+perm[Y]].dot2(x, y);
+    const n01 = gradP[X+perm[Y+1]].dot2(x, y-1);
+    const n10 = gradP[X+1+perm[Y]].dot2(x-1, y);
+    const n11 = gradP[X+1+perm[Y+1]].dot2(x-1, y-1);
         
-    let u = fade(x);
+    const u = fade(x);
 
     return lerp(
         lerp(n00, n10, u),
         lerp(n01, n11, u),
         fade(y)
     );
-}
-
-export function simplex2d(xin, yin) {
-    let n0, n1, n2;
-   
-    let s = (xin+yin)*F2;
-    let i = Math.floor(xin+s);
-    let j = Math.floor(yin+s);
-    let t = (i+j)*G2;
-    let x0 = xin-i+t;
-    let y0 = yin-j+t;
-   
-   
-    let i1, j1;
-    if (x0 > y0) {
-        i1 = 1; j1 = 0;
-    }
-    else {
-        i1 = 0; j1 = 1;
-    }
-   
-   
-   
-    let x1 = x0 - i1 + G2;
-    let y1 = y0 - j1 + G2;
-    let x2 = x0 - 1 + 2 * G2;
-    let y2 = y0 - 1 + 2 * G2;
-   
-    i &= 255;
-    j &= 255;
-    let gi0 = gradP[i+perm[j]];
-    let gi1 = gradP[i+i1+perm[j+j1]];
-    let gi2 = gradP[i+1+perm[j+1]];
-   
-    let t0 = 0.5 - x0*x0-y0*y0;
-    if (t0 < 0) {
-        n0 = 0;
-    }
-    else {
-        t0 *= t0;
-        n0 = t0 * t0 * gi0.dot2(x0, y0);
-    }
-    let t1 = 0.5 - x1*x1-y1*y1;
-    if (t1 < 0) {
-        n1 = 0;
-    }
-    else {
-        t1 *= t1;
-        n1 = t1 * t1 * gi1.dot2(x1, y1);
-    }
-    let t2 = 0.5 - x2*x2-y2*y2;
-    if (t2 < 0) {
-        n2 = 0;
-    }
-    else {
-        t2 *= t2;
-        n2 = t2 * t2 * gi2.dot2(x2, y2);
-    }
-   
-   
-    return (n0 + n1 + n2);
 }

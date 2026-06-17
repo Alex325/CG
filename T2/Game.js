@@ -28,7 +28,7 @@ export class Game {
     #stats;
     paused = false;
     speedMultiplier = 1;
-    sensitivity = 30;
+    sensitivity = 10;
     #cursorLocked = false;
     hitCount = 0;
 
@@ -38,7 +38,7 @@ export class Game {
 
     #buildInterface() {
         const gui = new GUI();
-        gui.add(this.#scene.fog, 'far', 1001, this.#fogfar)
+        gui.add(this.#scene.fog, 'far', 2000, this.#fogfar)
             .name("Fog Far");
         gui.add(this, 'paused').name("Paused (ESC)");
         gui.add(this, 'speedMultiplier', { Normal: 1, '2x': 1.5, '3x': 2 }).name("Speed (1/2/3)");
@@ -53,7 +53,7 @@ export class Game {
         const container = document.getElementById( 'container' );
         
         this.#scene = new THREE.Scene();
-        this.#scene.fog = new THREE.Fog(0x607a8d, 1000, this.#fogfar)        
+        this.#scene.fog = new THREE.Fog(0x607a8d, 0, this.#fogfar)        
         this.#renderer = initRenderer('#607a8d');
         this.#renderer.shadowMap.type = THREE.VSMShadowMap;
         this.#clock = new THREE.Timer();
@@ -255,6 +255,10 @@ export class Game {
         }
     }
 
+    /**
+     * 
+     * @returns {THREE.Raycaster}
+     */
     getRaycaster() {
         return this.#raycaster;
     }
@@ -326,7 +330,7 @@ export class Game {
         if (this._crosshair && this._crosshairDrawState && this._crosshairTarget) {
             this._crosshairDrawState.x += (this._crosshairTarget.x - this._crosshairDrawState.x) * this._crosshairEasing;
             this._crosshairDrawState.y += (this._crosshairTarget.y - this._crosshairDrawState.y) * this._crosshairEasing;
-            // Clamp
+
             this._crosshairDrawState.x = Math.max(0, Math.min(window.innerWidth, this._crosshairDrawState.x));
             this._crosshairDrawState.y = Math.max(0, Math.min(window.innerHeight, this._crosshairDrawState.y));
 

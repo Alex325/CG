@@ -39,8 +39,6 @@ export class Nave extends GameObject {
                 game.destroy(this);
             }
 
-            console.log(alpha);
-
             return;
         }
         

@@ -2,6 +2,7 @@ import { GameObject } from './GameObject.js';
 import { setDefaultMaterial } from '../libs/util/util.js';
 import * as THREE from 'three';
 import { Bullet } from './Bullet.js';
+import { Game } from './Game.js';
 
 export class Player extends GameObject {
 
@@ -9,6 +10,9 @@ export class Player extends GameObject {
      * @type {THREE.PerspectiveCamera}
      */
     #camera;
+    /**
+     * @type {THREE.Group}
+     */
     #airplane;
     #collplane;
     #aimTarget;
@@ -18,7 +22,7 @@ export class Player extends GameObject {
     #bounds = new THREE.Vector2(100, 24);
     #isShooting = false;
     #wantsToShoot = false;
-    #fireCooldown = 0.5; // seconds between shots (2 per second)
+    #fireCooldown = 0.2;
     #cooldown = 0;
 
     constructor() {
@@ -315,23 +319,30 @@ export class Player extends GameObject {
 
         this.#aimTargetParent.lookAt(this.#aimTarget.position.clone().add(this._object.position));
 
-        const targetQuaternion = this.#aimTargetParent.quaternion;
+        const targetQuaternion = this.#aimTargetParent.quaternion.clone();
 
         this.#airplane.quaternion.slerp(targetQuaternion, 1 - 0.05 ** dt);
     }
 
+    /**
+     * 
+     * @param {Game} game 
+     */
     #fireForward(game) {
         const airplaneWorldPos = new THREE.Vector3();
         this.#airplane.getWorldPosition(airplaneWorldPos);
 
         game.getRaycaster().setFromCamera(game.getAimNDC(), this.#camera);
-        const dir = (new THREE.Vector3(0, 0, 1)).applyQuaternion(this.#airplane.quaternion).normalize();
+        const point = game.getRaycaster().intersectObject(this.#collplane)[0].point;
+        const globalCamera = new THREE.Vector3();
+        this.#camera.getWorldPosition(globalCamera);
+        const dir = point.sub(globalCamera).normalize();
+        //const dir = (new THREE.Vector3(0, 0, 1)).applyQuaternion(this.#airplane.quaternion).normalize();
 
         const spawnPos = airplaneWorldPos.clone().add(dir.clone().multiplyScalar(30));
 
         const bulletSpeed = 1000;
         const bullet = new Bullet(spawnPos, dir, this.#airplane.position.clone().add(dir), 'player', bulletSpeed);
-        console.log(bullet._object.rotation);
         game.instantiate(bullet);
     }
 }

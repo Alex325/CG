@@ -13,6 +13,7 @@ export class Bullet extends GameObject {
     #ownerType;
     #lifetime = 10;
     #age = 0;
+    damage = 5;
 
     /**
      * @param {THREE.Vector3} position 

@@ -14,6 +14,9 @@ export class Game {
     #scene;
     #renderer;
     #clock;
+    /**
+     * @type {Player}
+     */
     #player;
     #camera;
     /**
@@ -31,6 +34,7 @@ export class Game {
     sensitivity = 10;
     #cursorLocked = false;
     hitCount = 0;
+    godMode = false;
 
     constructor() {
         this.#init();
@@ -43,7 +47,8 @@ export class Game {
         gui.add(this, 'paused').name("Paused (ESC)");
         gui.add(this, 'speedMultiplier', { Normal: 1, '2x': 1.5, '3x': 2 }).name("Speed (1/2/3)");
         gui.add(this, 'sensitivity', 1, 40).name("Sensitivity");
-        gui.add(this, 'hitCount').name("Player Hits").listen();
+        //gui.add(this, 'hitCount').name("Player Hits").listen();
+        gui.add(this, 'godMode').name("God Mode").listen().__li.style.pointerEvents = 'none';
     }
 
     #init() {
@@ -104,6 +109,7 @@ export class Game {
 
         this.#setupInput();
         this.#setupCrosshair();
+        this.#setupHealthbar();
 
         void this.instantiate(new Ground());
     }
@@ -136,6 +142,7 @@ export class Game {
             if (e.key === '1') this.speedMultiplier = 1;
             if (e.key === '2') this.speedMultiplier = 1.5;
             if (e.key === '3') this.speedMultiplier = 2;
+            if (e.key === 'g') this.godMode = !this.godMode;
         });
 
         document.addEventListener('click', () => {
@@ -178,7 +185,7 @@ export class Game {
             width: 100px;
             height: 100px;
             pointer-events: none;
-            z-index: 999;
+            z-index: 1000;
             transform: translate(-50%, -50%);
         `;
         this._crosshair = canvas;
@@ -207,7 +214,55 @@ export class Game {
         this._crosshairDraw();
     }
 
+    #setupHealthbar() {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'healthbar';
+        const [width, height] = [400, 50];
+        canvas.width = width;
+        canvas.height = height;
+        canvas.style.cssText = `
+            position: fixed;
+            left: 1%;
+            bottom: 1%;
+            width: ${width}px;
+            height: ${height}px;
+            pointer-events: none;
+            z-index: 500;
+            /*transform: translate(-50%, -50%);*/
+        `;
+        this._healthbar = canvas;
+        document.body.appendChild(canvas);
+
+        this._healthbarDraw = () => {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 400, 50);
+            ctx.save();
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            const centerx = width/2, centery = height/2;
+            const hwidth = width/2, hheight = height/2;
+            let curHealth = this.#player.health;
+
+            ctx.beginPath();
+            ctx.moveTo(centerx-hwidth, centery-hheight); ctx.lineTo(centerx+hwidth, centery-hheight); ctx.lineTo(centerx+hwidth, centery+hheight); ctx.lineTo(centerx-hwidth, centery+hheight);
+            ctx.closePath();
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ff0000';
+
+            const paddingx = 0.98, paddingy = 0.87;
+            const healthWidth = (curHealth / this.#player.maxHealth) * width * paddingx;
+            ctx.fillRect(centerx-hwidth + healthWidth*(1-paddingx)/2, centery-hheight + height*(1-paddingx)*3, healthWidth, height * paddingy);
+            ctx.restore();
+        };
+        this._healthbarDraw();
+    }
+
     #checkCollisions() {
+        /**
+         * @type {Bullet[]}
+         */
         const bullets = this.#gameObjects.filter(obj => obj.constructor.name === 'Bullet');
         
         const playerPos = new THREE.Vector3();
@@ -222,10 +277,13 @@ export class Game {
 
             if (ownerType === 'enemy') {
                 if (playerBB.intersectsBox(bulletBB)) {
-                    this.hitCount++;
+                    //this.hitCount++;
                     this.destroy(bullet);                    
+                    if(this.godMode) continue;
+                    this.#player.takeDamage(bullet.damage);
                 }
-            } else if (ownerType === 'player') {
+            }
+            else if (ownerType === 'player') {
                 const ground = this.#gameObjects.find(obj => obj.constructor.name === 'Ground');
                 if (ground && ground.getObj()) {
                     const planes = ground.getObj().children;
@@ -343,6 +401,7 @@ export class Game {
             this._aimNDC.y = -(this._crosshairDrawState.y / window.innerHeight) * 2 + 1;
 
             if (this._crosshairDraw) this._crosshairDraw();
+            if (this._healthbarDraw) this._healthbarDraw();
         }
         this.#udpate(dt);
         this.#render();

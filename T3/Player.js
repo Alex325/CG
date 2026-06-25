@@ -24,6 +24,8 @@ export class Player extends GameObject {
     #wantsToShoot = false;
     #fireCooldown = 0.2;
     #cooldown = 0;
+    maxHealth = 100;
+    health = 100;
 
     constructor() {
         super();
@@ -227,9 +229,17 @@ export class Player extends GameObject {
 
     }
 
+    /**
+     * 
+     * @param {number} dt 
+     * @param {Game} game 
+     * @returns 
+     */
     update(dt, game) {
         if (!game.isCursorLocked()) return;
         this.#resizePlane();
+
+        if (game.godMode) this.health = this.maxHealth;
 
         game.getRaycaster().setFromCamera(game.getAimNDC(), this.#camera);
         const planeHit = game.getRaycaster().intersectObject(this.#collplane)[0];
@@ -282,6 +292,14 @@ export class Player extends GameObject {
             }
             this.#wantsToShoot = false;
         }
+    }
+
+    takeDamage(amount) {
+        this.health = Math.max(this.health - amount, 0);
+    }
+
+    heal(amount) {
+        this.health = Math.min(this.health + amount, this.maxHealth);
     }
 
     /**

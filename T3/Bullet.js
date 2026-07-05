@@ -1,6 +1,5 @@
 import { GameObject } from "./GameObject.js";
 import * as THREE from 'three';
-import { setDefaultMaterial } from '../libs/util/util.js';
 import { Game } from "./Game.js";
 
 const geometryEnemy = new THREE.ConeGeometry(6, 20);

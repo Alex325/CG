@@ -1,4 +1,3 @@
-import { setDefaultMaterial } from "../libs/util/util.js";
 import { GameObject } from "./GameObject.js";
 import * as THREE from 'three';
 

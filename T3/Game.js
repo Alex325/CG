@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { initRenderer, onWindowResize } from '../libs/util/util.js';
+import { initRenderer, onWindowResize } from './libs/util/util.js';
 import { Player } from './Player.js'
 import { Ground } from './Ground.js';
-import Stats from '../build/jsm/libs/stats.module.js';
-import GUI from '../libs/util/dat.gui.module.js';
+import Stats from './build/jsm/libs/stats.module.js';
+import GUI from './libs/util/dat.gui.module.js';
 import { seed } from './noise.js';
 import { HealthPack } from './HealthPack.js';
 

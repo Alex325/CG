@@ -1,5 +1,5 @@
 import { GameObject } from './GameObject.js';
-import { setDefaultMaterial } from '../libs/util/util.js';
+import { setDefaultMaterial } from './libs/util/util.js';
 import * as THREE from 'three';
 import { Bullet } from './Bullet.js';
 import { Game } from './Game.js';

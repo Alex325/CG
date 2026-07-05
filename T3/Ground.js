@@ -3,6 +3,7 @@ import { GameObject } from "./GameObject.js";
 import { Tree1, Tree2 } from './Tree.js';
 import { Nave } from './Nave.js';
 import { perlin2d } from './noise.js';
+import { AssetManager } from './AssetManager.js';
 
 const groundFragmentShader = `
     in vec2 vUv;
@@ -129,7 +130,7 @@ const waterFragmentShader = `
         #include <fog_fragment>
     }`;
 
-const textureLoader = new THREE.TextureLoader();
+const textureLoader = new THREE.TextureLoader(AssetManager.manager);
 const grassTexture = textureLoader.load('./assets/grass.jpg');
 grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping;
 const sandTexture = textureLoader.load('./assets/sand.jpg');

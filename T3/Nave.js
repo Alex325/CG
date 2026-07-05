@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from './build/jsm/loaders/GLTFLoader.js';
 import { Bullet } from './Bullet.js';
 import { Game } from "./Game.js";
+import { AssetManager } from "./AssetManager.js";
 
 export class Nave extends GameObject {
     #fireTimer = 0;
@@ -14,7 +15,7 @@ export class Nave extends GameObject {
     constructor() {
         super();
 
-        const loader = new GLTFLoader();
+        const loader = new GLTFLoader(AssetManager.manager);
 
         loader.load('./assets/nave.glb', (gltf) => {
 

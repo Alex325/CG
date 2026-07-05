@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './build/jsm/loaders/GLTFLoader.js';
 import { GameObject } from './GameObject.js';
+import { AssetManager } from './AssetManager.js';
 
 export class HealthPack extends GameObject {
 
@@ -22,7 +23,7 @@ export class HealthPack extends GameObject {
 
         this._object.position.copy(position);
 
-        const loader = new GLTFLoader();
+        const loader = new GLTFLoader(AssetManager.manager);
 
         loader.load('./assets/healthpack.glb', (gltf) => {
             this._object.add(gltf.scene);

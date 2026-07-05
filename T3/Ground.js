@@ -82,21 +82,14 @@ const waterFragmentShader = `
     #include <fog_pars_fragment>
     
     void main() {
-        //---------------------------------------
-        // Animate the normal map
-        //---------------------------------------
 
         vec2 uv1 = vUv + vec2(time * 0.03, time * 0.02);
         vec2 uv2 = vUv + vec2(-time * 0.015, time * 0.025);
 
-        vec3 n1 = texture2D(normalMap, uv1).xyz;
-        vec3 n2 = texture2D(normalMap, uv2).xyz;
+        vec3 n1 = texture(normalMap, uv1).xyz * 2.0 - 1.0;
+        vec3 n2 = texture(normalMap, uv2).xyz * 2.0 - 1.0;
 
-        vec3 normal = normalize((n1 + n2) * 0.5 * 2.0 - 1.0);
-
-        //---------------------------------------
-        // Lighting
-        //---------------------------------------
+        vec3 normal = normalize(n1 + n2);
 
         float diffuse = max(dot(normal, normalize(lightDirection)), 0.0);
 
@@ -106,39 +99,18 @@ const waterFragmentShader = `
 
         float specular = pow(max(dot(normal, halfDir), 0.0), 80.0);
 
-        //---------------------------------------
-        // Fresnel
-        //---------------------------------------
+        float fresnel = pow(1.0 - max(dot(viewDir, normal),0.0),3.0);
 
-        float fresnel =
-            pow(1.0 - max(dot(viewDir, normal), 0.0), 3.0);
-
-        //---------------------------------------
-        // Final color
-        //---------------------------------------
 
         vec3 color = waterColor;
-
         color *= 0.4 + diffuse * 0.6;
-
         color += sunColor * specular * 0.8;
-
-        color = mix(color, sunColor, fresnel * 0.2);
+        color = mix(color, sunColor, fresnel * 0.1);
 
         gl_FragColor = vec4(color, 1.0);
         
         #include <fog_fragment>
     }`;
-
-const textureLoader = new THREE.TextureLoader(AssetManager.manager);
-const grassTexture = textureLoader.load('./assets/grass.jpg');
-grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping;
-const sandTexture = textureLoader.load('./assets/sand.jpg');
-sandTexture.wrapS = sandTexture.wrapT = THREE.RepeatWrapping;
-const waterNormalsTexture = textureLoader.load('./assets/waternormals.jpg');
-waterNormalsTexture.wrapS = waterNormalsTexture.wrapT = THREE.RepeatWrapping;
-waterNormalsTexture.colorSpace = THREE.NoColorSpace
-waterNormalsTexture.repeat.set(20, 20);
 
 export class Ground extends GameObject {
 
@@ -166,8 +138,8 @@ export class Ground extends GameObject {
         super();
 
         const myUniforms = {
-            uGrass: {value: grassTexture},
-            uSand: {value: sandTexture}
+            uGrass: {value: AssetManager.textures.grass},
+            uSand: {value: AssetManager.textures.sand}
         };
 
         const planeMaterial = new THREE.ShaderMaterial({
@@ -367,7 +339,7 @@ export class Ground extends GameObject {
                 uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog,
                 {
                     time: { value: 0.0 },
-                    normalMap: { value: waterNormalsTexture },
+                    normalMap: { value: AssetManager.textures.waterNormals },
                     lightDirection: {
                         value: new THREE.Vector3(0.3, 1.0, 0.4).normalize()
                     },

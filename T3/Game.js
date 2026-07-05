@@ -45,6 +45,7 @@ export class Game {
     #enemyKills = 0;
     hitCount = 0;
     godMode = false;
+    playMusic = true;
 
     constructor() {
         this.#init();
@@ -59,6 +60,7 @@ export class Game {
         gui.add(this, 'sensitivity', 1, 40).name("Sensitivity");
         //gui.add(this, 'hitCount').name("Player Hits").listen();
         gui.add(this, 'godMode').name("God Mode").listen().__li.style.pointerEvents = 'none';
+        gui.add(this, 'playMusic').name("Play Music").listen().__li.style.pointerEvents = 'none';
     }
 
     #init() {
@@ -88,21 +90,18 @@ export class Game {
         this.#globalLight.shadow.bias = -0.0001;
 
 
-        this.#gameObjects = [];
-        this.#player = this.instantiate(new Player());
-        this.#camera = this.#player.getCamera();
+
         this.#mousePos = new THREE.Vector2();
         this._aimNDC = new THREE.Vector2(0, 0);
         this._crosshairPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
         this.#stats = new Stats();
-
         container.append(this.#stats.dom);
         
-        this.#buildInterface();
-
         this.#scene.add(this.#globalLight);
         this.#scene.add(this.#globalLight.target);
-
+        
+        this.#buildInterface();
+        
         window.onresize = () => { onWindowResize(this.#camera, this.#renderer); };
         this._crosshairDrawState = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
         this._crosshairTarget = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -114,24 +113,21 @@ export class Game {
             this._crosshairTarget.x = Math.max(0, Math.min(window.innerWidth, this._crosshairTarget.x));
             this._crosshairTarget.y = Math.max(0, Math.min(window.innerHeight, this._crosshairTarget.y));
         });
-
+        
         this.#raycaster = new THREE.Raycaster();
-
-        AssetManager.onProgress = (loaded, total) => {
-            this.#showLoadingScreen(loaded, total);
-        };
-
-        AssetManager.onFinished = () => {
-            this.#showStartScreen();
-        };
-
+        
         this.#setupInput();
         this.#setupCrosshair();
-        this.#setupHealthbar();
         this.#setupOverlay();
 
-        void this.instantiate(new Ground());
+    }
 
+    initialize() {
+        this.#gameObjects = [];
+        this.#player = this.instantiate(new Player());
+        this.#camera = this.#player.getCamera();
+        this.#setupHealthbar();
+        void this.instantiate(new Ground());
     }
 
     #udpate(dt = 1/60) {
@@ -311,7 +307,7 @@ export class Game {
 
         document.body.appendChild(this.#overlay);
 
-        this.#showLoadingScreen(0, 0);
+        this.showLoadingScreen(0, 0);
     }
 
     #createButton(text, callback) {
@@ -332,7 +328,7 @@ export class Game {
         return button;
     }
 
-    #showLoadingScreen(loaded, total) {
+    showLoadingScreen(loaded, total) {
         this.#overlay.style.display = "flex";
         this.#overlay.innerHTML = `
             <h1>Loading...</h1>
@@ -340,14 +336,14 @@ export class Game {
         `;
     }
 
-    #showStartScreen() {
+    showStartScreen() {
         this.#state = Game.START;
 
         this.#overlay.style.display = "flex";
         this.#overlay.innerHTML = "";
 
         const title = document.createElement("h1");
-        title.textContent = "Flight Game";
+        title.textContent = "Star Fox da China";
 
         const button = this.#createButton("Start", () => {
             this.#overlay.style.display = "none";

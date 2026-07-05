@@ -23,13 +23,8 @@ export class HealthPack extends GameObject {
 
         this._object.position.copy(position);
 
-        const loader = new GLTFLoader(AssetManager.manager);
+        this._object.add(AssetManager.models.healthPack.clone(true));
 
-        loader.load('./assets/healthpack.glb', (gltf) => {
-            this._object.add(gltf.scene);
-        });
-
-        // Fallback object in case the model hasn't loaded yet.
         const crossMaterial = new THREE.MeshPhongMaterial({
             color: 0xffffff
         });

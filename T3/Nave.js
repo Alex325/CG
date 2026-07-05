@@ -1,6 +1,5 @@
 import { GameObject } from "./GameObject.js";
 import * as THREE from 'three';
-import { GLTFLoader } from './build/jsm/loaders/GLTFLoader.js';
 import { Bullet } from './Bullet.js';
 import { Game } from "./Game.js";
 import { AssetManager } from "./AssetManager.js";
@@ -15,14 +14,20 @@ export class Nave extends GameObject {
     constructor() {
         super();
 
-        const loader = new GLTFLoader(AssetManager.manager);
+        const model = AssetManager.models.enemy.clone(true);
 
-        loader.load('./assets/nave.glb', (gltf) => {
+        model.traverse((obj) => {
+            if (!obj.isMesh) return;
 
-            const model = gltf.scene;
-
-            this._object.add(model);
+            if (Array.isArray(obj.material)) {
+                obj.material = obj.material.map(m => m.clone());
+            } else {
+                obj.material = obj.material.clone();
+            }
         });
+        
+
+        this._object.add(model);
     }
 
     /**

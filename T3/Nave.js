@@ -1,6 +1,6 @@
 import { GameObject } from "./GameObject.js";
 import * as THREE from 'three';
-import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
+import { GLTFLoader } from './build/jsm/loaders/GLTFLoader.js';
 import { Bullet } from './Bullet.js';
 import { Game } from "./Game.js";
 

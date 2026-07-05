@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
+import { GLTFLoader } from './build/jsm/loaders/GLTFLoader.js';
 import { AssetManifest } from './AssetManifest.js';
 
 export class AssetManager {

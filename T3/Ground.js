@@ -10,17 +10,21 @@ const groundFragmentShader = `
     in float vHeight;
     uniform sampler2D uGrass;
     uniform sampler2D uSand;
+    uniform sampler2D uPebbles;
 
     #include <fog_pars_fragment>
 
     void main() {
 
-        vec4 grassColor = texture2D(uGrass, vUv);
-        vec4 sandColor = texture2D(uSand, vUv);
+        vec4 sandColor = texture2D(uSand, vUv*4.0);
+        vec4 grassColor = texture2D(uGrass, vUv*8.0);
+        vec4 pebblesColor = texture2D(uPebbles, vUv*20.0);
 
-        float mixf = smoothstep(-40.0, 50.0, vHeight);
+        float mixsp = smoothstep(-40.0, 50.0, vHeight);
+        float mixpg = smoothstep(50.0, 200.0, vHeight);
 
-        vec4 finalColor = mix(sandColor, grassColor, mixf);
+        vec4 finalColor = mix(sandColor, pebblesColor, mixsp);
+        finalColor = mix(finalColor, grassColor, mixpg);
 
         if (vHeight < -45.0) discard;
 
@@ -143,19 +147,23 @@ export class Ground extends GameObject {
 
         AssetManager.textures.grass.wrapS = AssetManager.textures.grass.wrapT = THREE.RepeatWrapping;
         AssetManager.textures.sand.wrapS = AssetManager.textures.sand.wrapT = THREE.RepeatWrapping;
+        AssetManager.textures.pebbles.wrapS = AssetManager.textures.pebbles.wrapT = THREE.RepeatWrapping;
         AssetManager.textures.waterNormals.wrapS = AssetManager.textures.waterNormals.wrapT = THREE.RepeatWrapping;
 
         AssetManager.textures.grass.repeat.set(20, 20);
         AssetManager.textures.sand.repeat.set(20, 20);
+        AssetManager.textures.pebbles.repeat.set(20, 20);
         AssetManager.textures.waterNormals.repeat.set(20, 20);
 
         AssetManager.textures.grass.needsUpdate = true;
         AssetManager.textures.sand.needsUpdate = true;
+        AssetManager.textures.pebbles.needsUpdate = true;
         AssetManager.textures.waterNormals.needsUpdate = true;
 
         const myUniforms = {
             uGrass: {value: AssetManager.textures.grass},
-            uSand: {value: AssetManager.textures.sand}
+            uSand: {value: AssetManager.textures.sand},
+            uPebbles: {value: AssetManager.textures.pebbles}
         };
 
         const planeMaterial = new THREE.ShaderMaterial({

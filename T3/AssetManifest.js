@@ -9,6 +9,7 @@ export const AssetManifest = {
     textures: {
         grass: "./assets/grass.jpg",
         sand: "./assets/sand.jpg",
+        pebbles: "./assets/pebbles.jpg",
         waterNormals: "./assets/waternormals.jpg"
     },
 

@@ -6,6 +6,7 @@ import Stats from './build/jsm/libs/stats.module.js';
 import GUI from './libs/util/dat.gui.module.js';
 import { seed } from './noise.js';
 import { HealthPack } from './HealthPack.js';
+import { AssetManager } from './AssetManager.js';
 
 export class Game {
 
@@ -115,6 +116,14 @@ export class Game {
         });
 
         this.#raycaster = new THREE.Raycaster();
+
+        AssetManager.onProgress = (loaded, total) => {
+            this.#showLoadingScreen(loaded, total);
+        };
+
+        AssetManager.onFinished = () => {
+            this.#showStartScreen();
+        };
 
         this.#setupInput();
         this.#setupCrosshair();
@@ -302,7 +311,7 @@ export class Game {
 
         document.body.appendChild(this.#overlay);
 
-        this.#showStartScreen();
+        this.#showLoadingScreen(0, 0);
     }
 
     #createButton(text, callback) {
@@ -323,31 +332,30 @@ export class Game {
         return button;
     }
 
-    #showStartScreen() {
+    #showLoadingScreen(loaded, total) {
+        this.#overlay.style.display = "flex";
+        this.#overlay.innerHTML = `
+            <h1>Loading...</h1>
+            <p>${loaded} / ${total}</p>
+        `;
+    }
 
+    #showStartScreen() {
         this.#state = Game.START;
 
-        document.exitPointerLock();
-
+        this.#overlay.style.display = "flex";
         this.#overlay.innerHTML = "";
 
         const title = document.createElement("h1");
         title.textContent = "Flight Game";
 
         const button = this.#createButton("Start", () => {
-
             this.#overlay.style.display = "none";
-            this._crosshair.style.display = "";
-            this._healthbar.style.display = "";
-
             this.#state = Game.RUNNING;
-
             document.documentElement.requestPointerLock();
         });
 
         this.#overlay.append(title, button);
-        this._crosshair.style.display = "none";
-        this._healthbar.style.display = "none";
     }
 
     #showGameOver() {

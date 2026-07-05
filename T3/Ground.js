@@ -85,26 +85,30 @@ const waterFragmentShader = `
 
         vec2 uv1 = vUv + vec2(time * 0.03, time * 0.02);
         vec2 uv2 = vUv + vec2(-time * 0.015, time * 0.025);
+        vec2 uv3 = vUv + vec2(time * 0.0023, time * 0.032);
+        vec2 uv4 = vUv + vec2(-time * 0.001, time * 0.05);
 
         vec3 n1 = texture(normalMap, uv1).xyz * 2.0 - 1.0;
         vec3 n2 = texture(normalMap, uv2).xyz * 2.0 - 1.0;
+        vec3 n3 = texture(normalMap, uv3).xyz * 2.0 - 1.0;
+        vec3 n4 = texture(normalMap, uv4).xyz * 2.0 - 1.0;
 
-        vec3 normal = normalize(n1 + n2);
+        vec3 normal = normalize(n1 + n2 + n3 + n4);
 
         float diffuse = max(dot(normal, normalize(lightDirection)), 0.0);
 
-        vec3 viewDir = normalize(cameraPosition - vWorldPos);
+        vec3 viewDir = -normalize(cameraPosition - vWorldPos);
 
         vec3 halfDir = normalize(viewDir + normalize(lightDirection));
 
-        float specular = pow(max(dot(normal, halfDir), 0.0), 80.0);
+        float specular = pow(max(dot(normal, halfDir), 0.0), 50.0);
 
-        float fresnel = pow(1.0 - max(dot(viewDir, normal),0.0),3.0);
+        float fresnel = pow(1.0 - max(dot(viewDir, normal),0.0), 5.0);
 
 
         vec3 color = waterColor;
         color *= 0.4 + diffuse * 0.6;
-        color += sunColor * specular * 0.8;
+        color += sunColor * specular * 2.8;
         color = mix(color, sunColor, fresnel * 0.1);
 
         gl_FragColor = vec4(color, 1.0);
@@ -136,6 +140,18 @@ export class Ground extends GameObject {
 
     constructor() {
         super();
+
+        AssetManager.textures.grass.wrapS = AssetManager.textures.grass.wrapT = THREE.RepeatWrapping;
+        AssetManager.textures.sand.wrapS = AssetManager.textures.sand.wrapT = THREE.RepeatWrapping;
+        AssetManager.textures.waterNormals.wrapS = AssetManager.textures.waterNormals.wrapT = THREE.RepeatWrapping;
+
+        AssetManager.textures.grass.repeat.set(20, 20);
+        AssetManager.textures.sand.repeat.set(20, 20);
+        AssetManager.textures.waterNormals.repeat.set(20, 20);
+
+        AssetManager.textures.grass.needsUpdate = true;
+        AssetManager.textures.sand.needsUpdate = true;
+        AssetManager.textures.waterNormals.needsUpdate = true;
 
         const myUniforms = {
             uGrass: {value: AssetManager.textures.grass},
@@ -347,7 +363,7 @@ export class Ground extends GameObject {
                         value: new THREE.Color(0x2d6f87)
                     },
                     sunColor: {
-                        value: new THREE.Color(0xffffff)
+                        value: new THREE.Color(0xfff9e8)
                     }
                 }]),
                 vertexShader: waterVertexShader,

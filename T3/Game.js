@@ -7,6 +7,7 @@ import GUI from './libs/util/dat.gui.module.js';
 import { seed } from './noise.js';
 import { HealthPack } from './HealthPack.js';
 import { AssetManager } from './AssetManager.js';
+import { SoundManager } from './SoundManager.js';
 
 export class Game {
 
@@ -35,10 +36,11 @@ export class Game {
     #raycaster;
     #fogfar = 3000;
     #overlay;
-
     #stats;
-    #state = Game.RUNNING;
+    #music;
+    
     paused = false;
+    #state = Game.START;
     speedMultiplier = 1;
     sensitivity = 10;
     #cursorLocked = false;
@@ -128,6 +130,8 @@ export class Game {
         this.#camera = this.#player.getCamera();
         this.#setupHealthbar();
         void this.instantiate(new Ground());
+
+        SoundManager.initialize(this.#camera);
     }
 
     #udpate(dt = 1/60) {
@@ -152,11 +156,10 @@ export class Game {
         window.addEventListener('keydown', (e) => {
 
             if (e.key === 'Escape' && (this.#state === Game.RUNNING || this.#state === Game.PAUSED)) {
-                if (this.#state === Game.PAUSED) {
-                    this.#state = Game.RUNNING;
-                }
-                else if (this.#state === Game.RUNNING) {
+                if (this.#state === Game.RUNNING) {
                     this.#state = Game.PAUSED;
+                    SoundManager.pauseMusic();
+                    paused = true;
                 }
 
                 if (this.#state === Game.PAUSED && document.pointerLockElement) {
@@ -168,12 +171,19 @@ export class Game {
             if (e.key === '2') this.speedMultiplier = 1.5;
             if (e.key === '3') this.speedMultiplier = 2;
             if (e.key === 'g') this.godMode = !this.godMode;
+            if (e.key === 's' && this.#state == Game.RUNNING) {
+                this.playMusic = !this.playMusic;
+                if (this.playMusic) SoundManager.resumeMusic();
+                else SoundManager.pauseMusic();
+            }
         });
 
         document.addEventListener('click', () => {
 
             if (this.#state === Game.PAUSED || this.#state === Game.RUNNING) {
+                if (this.#state === Game.PAUSED && this.playMusic) SoundManager.resumeMusic();
                 this.#state = Game.RUNNING;
+                this.paused = false;
                 document.documentElement.requestPointerLock();
             }
 
@@ -198,6 +208,8 @@ export class Game {
             }
             else if (this.#state === Game.RUNNING) {
                 this.#state = Game.PAUSED;
+                this.paused = true;
+                SoundManager.pauseMusic();
             }
         });
     }
@@ -303,6 +315,10 @@ export class Game {
             color: white;
             font-family: sans-serif;
             z-index: 5000;
+
+            background-image: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url('./assets/background.jpg');
+            background-size = cover;
+            background-position = center;
         `;
 
         document.body.appendChild(this.#overlay);
@@ -337,15 +353,21 @@ export class Game {
     }
 
     showStartScreen() {
+
         this.#state = Game.START;
 
         this.#overlay.style.display = "flex";
         this.#overlay.innerHTML = "";
 
         const title = document.createElement("h1");
-        title.textContent = "Star Fox da China";
+        title.textContent = "Discount Star Fox";
 
-        const button = this.#createButton("Start", () => {
+        const button = this.#createButton("Start", async () => {
+
+            await SoundManager.listener.context.resume();
+
+            SoundManager.playMusic();
+
             this.#overlay.style.display = "none";
             this.#state = Game.RUNNING;
             document.documentElement.requestPointerLock();
@@ -395,8 +417,8 @@ export class Game {
 
             if (ownerType === 'enemy') {
                 if (playerBB.intersectsBox(bulletBB)) {
-                    //this.hitCount++;
-                    this.destroy(bullet);                    
+                    this.destroy(bullet);
+                    SoundManager.play('hurt');               
                     if(this.godMode) continue;
                     this.#player.takeDamage(bullet.damage);
                 }
@@ -419,6 +441,7 @@ export class Game {
                                     this.destroy(bullet);
                                     if (enemy.fadeOut) {
                                         enemy.fadeOut();
+                                        SoundManager.play('explosion');
                                     } else {
                                         this.destroy(enemy);
                                     }

@@ -1,0 +1,8 @@
+Background - https://wall.alphacoders.com/big.php?i=329295
+Música - https://www.youtube.com/watch?v=r1JYqmJU8oM
+Efeitos sonoros - eu mesmo
+Modelos e texturas dos modelos - eu mesmo
+Texturas de grama e areia e normais da água - do próprio repositório
+"Avião" - nicuefo at https://www.cgtrader.com/free-3d-models/space/spaceship/fighter-232
+Shaders de terreno - minha implementação
+Shaders de água - gerado por IA (Blinn Phong padrão com fresnel), modificado até que eu estivesse satisfeito com o resultado

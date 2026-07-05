@@ -3,6 +3,8 @@ import { setDefaultMaterial } from './libs/util/util.js';
 import * as THREE from 'three';
 import { Bullet } from './Bullet.js';
 import { Game } from './Game.js';
+import { SoundManager } from './SoundManager.js';
+import { AssetManager } from './AssetManager.js';
 
 export class Player extends GameObject {
 
@@ -124,39 +126,14 @@ export class Player extends GameObject {
         spotlight.shadow.mapSize.height = 512;
         spotlight.shadow.camera.far = 1000;
         spotlight.shadow.bias = -0.0001;
-        
-        body.rotateX(THREE.MathUtils.degToRad(-90));
-        wings.scale.set(5, 0.5, 0.5);
-        winglet1.scale.set(3, 0.5, 0.5);
-        winglet2.scale.set(0.5, 2, 0.25);
-        wings.translateZ(10);
-        winglet1.translateZ(-30);
-        winglet2.translateZ(-30);
-        winglet2.translateY(25);
-        engine1.translateX(80);
-        engine2.translateX(40);
-        engine3.translateX(-40);
-        engine4.translateX(-80);
-        engine1.translateY(-10);
-        engine2.translateY(-10);
-        engine3.translateY(-10);
-        engine4.translateY(-10);
-        engine1.rotateX(THREE.MathUtils.DEG2RAD * 90);
-        engine2.rotateX(THREE.MathUtils.DEG2RAD * 90);
-        engine3.rotateX(THREE.MathUtils.DEG2RAD * 90);
-        engine4.rotateX(THREE.MathUtils.DEG2RAD * 90);
+
         spotlight.position.set(0, 0, 50);
         spotlight.target.position.set(0, -1, 1);
         
-        airplane.add(body);
-        airplane.add(wings);
-        airplane.add(winglet1);
-        airplane.add(winglet2);
-        airplane.add(engine1);
-        airplane.add(engine2);
-        airplane.add(engine3);
-        airplane.add(engine4);
-        airplane.add(spotlight);
+        const airplaneModel = AssetManager.models.airplane.clone(true);
+        airplaneModel.scale.set(4, 4, 4);
+        airplaneModel.rotation.y = Math.PI/2;
+        airplane.add(airplaneModel);
         spotlight.add(spotlight.target);
 
 
@@ -362,5 +339,7 @@ export class Player extends GameObject {
         const bulletSpeed = 1000;
         const bullet = new Bullet(spawnPos, dir, this.#airplane.position.clone().add(dir), 'player', bulletSpeed);
         game.instantiate(bullet);
+
+        SoundManager.play('shot');
     }
 }

@@ -2,7 +2,8 @@ export const AssetManifest = {
 
     models: {
         enemy: "./assets/nave.glb",
-        healthPack: "./assets/healthpack.glb"
+        healthPack: "./assets/healthpack.glb",
+        airplane: "./assets/aviao.glb"
     },
 
     textures: {
@@ -12,10 +13,11 @@ export const AssetManifest = {
     },
 
     audio: {
-        /*shot: "./assets/audio/shot.wav",
-        explosion: "./assets/audio/explosion.wav",
-        pickup: "./assets/audio/pickup.wav",
-        music: "./assets/audio/music.mp3"*/
+        pickup: "./assets/pickup.wav",
+        explosion: "./assets/explosion.wav",
+        shot: "./assets/shot.wav",
+        hurt: "./assets/hurt.wav",
+        music: "./assets/music.mp3"
     }
 
 };

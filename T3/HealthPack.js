@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { GLTFLoader } from './build/jsm/loaders/GLTFLoader.js';
 import { GameObject } from './GameObject.js';
 import { AssetManager } from './AssetManager.js';
+import { Game } from './Game.js';
+import { SoundManager } from './SoundManager.js';
 
 export class HealthPack extends GameObject {
 
@@ -47,6 +48,12 @@ export class HealthPack extends GameObject {
         this._object.scale.set(20, 20, 20);
     }
 
+    /**
+     * 
+     * @param {number} dt 
+     * @param {Game} game 
+     * @returns 
+     */
     update(dt, game) {
 
         this._object.rotateY(HealthPack.ROTATION_SPEED * dt);
@@ -65,6 +72,10 @@ export class HealthPack extends GameObject {
         }
 
         this._object.position.z += -HealthPack.TRANS_SPEED*dt;
+        if (this._object.position.z < -500) {
+            game.destroy(this);
+            return;
+        }
 
         if (!this.#attracting)
             return;
@@ -80,9 +91,8 @@ export class HealthPack extends GameObject {
         );
 
         if (distance < HealthPack.COLLECT_RADIUS) {
-
             player.heal(player.maxHealth * HealthPack.HEAL_PERCENT);
-
+            SoundManager.play('pickup');            
             game.destroy(this);
         }
     }

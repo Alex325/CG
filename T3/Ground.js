@@ -3,7 +3,6 @@ import { GameObject } from "./GameObject.js";
 import { Tree1, Tree2 } from './Tree.js';
 import { Nave } from './Nave.js';
 import { perlin2d } from './noise.js';
-import { Water } from '../build/jsm/objects/Water.js';
 
 const groundFragmentShader = `
     in vec2 vUv;

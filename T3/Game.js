@@ -5,8 +5,14 @@ import { Ground } from './Ground.js';
 import Stats from '../build/jsm/libs/stats.module.js';
 import GUI from '../libs/util/dat.gui.module.js';
 import { seed } from './noise.js';
+import { HealthPack } from './HealthPack.js';
 
 export class Game {
+
+    static RUNNING = 0;
+    static PAUSED = 1;
+    static GAME_OVER = 2;
+    static START = 3;
 
     /**
      * @type {THREE.Scene}
@@ -27,12 +33,15 @@ export class Game {
     #mousePos;
     #raycaster;
     #fogfar = 3000;
+    #overlay;
 
     #stats;
+    #state = Game.RUNNING;
     paused = false;
     speedMultiplier = 1;
     sensitivity = 10;
     #cursorLocked = false;
+    #enemyKills = 0;
     hitCount = 0;
     godMode = false;
 
@@ -110,12 +119,14 @@ export class Game {
         this.#setupInput();
         this.#setupCrosshair();
         this.#setupHealthbar();
+        this.#setupOverlay();
 
         void this.instantiate(new Ground());
+
     }
 
     #udpate(dt = 1/60) {
-        if (this.paused) return;
+        if (this.#state !== Game.RUNNING) return;
 
         const scaledDt = dt * this.speedMultiplier;
 
@@ -129,16 +140,25 @@ export class Game {
         }
 
         this.#checkCollisions();
+        if (this.#player.health <= 0) this.#showGameOver();
     }
 
     #setupInput() {
         window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                this.paused = !this.paused;
-                if (this.paused && document.pointerLockElement) {
+
+            if (e.key === 'Escape' && (this.#state === Game.RUNNING || this.#state === Game.PAUSED)) {
+                if (this.#state === Game.PAUSED) {
+                    this.#state = Game.RUNNING;
+                }
+                else if (this.#state === Game.RUNNING) {
+                    this.#state = Game.PAUSED;
+                }
+
+                if (this.#state === Game.PAUSED && document.pointerLockElement) {
                     document.exitPointerLock();
                 }
             }
+
             if (e.key === '1') this.speedMultiplier = 1;
             if (e.key === '2') this.speedMultiplier = 1.5;
             if (e.key === '3') this.speedMultiplier = 2;
@@ -146,29 +166,33 @@ export class Game {
         });
 
         document.addEventListener('click', () => {
-            if (this.paused) {
-                this.paused = false;
-                document.documentElement.requestPointerLock();
-            } else if (!this.#cursorLocked) {
+
+            if (this.#state === Game.PAUSED || this.#state === Game.RUNNING) {
+                this.#state = Game.RUNNING;
                 document.documentElement.requestPointerLock();
             }
+
         });
 
         document.addEventListener('pointerlockchange', () => {
             const locked = !!document.pointerLockElement;
             this.#cursorLocked = locked;
             document.documentElement.style.cursor = locked ? 'none' : 'default';
+
             if (locked) {
                 this._crosshairPos.x = window.innerWidth / 2;
                 this._crosshairPos.y = window.innerHeight / 2;
+
                 if (this._crosshair) {
                     this._crosshair.style.left = '50%';
                     this._crosshair.style.top = '50%';
                     this._crosshair.style.transform = 'translate(-50%, -50%)';
                 }
+
                 this._aimNDC.set(0, 0);
-            } else {
-                this.paused = true;
+            }
+            else if (this.#state === Game.RUNNING) {
+                this.#state = Game.PAUSED;
             }
         });
     }
@@ -259,6 +283,96 @@ export class Game {
         this._healthbarDraw();
     }
 
+    #setupOverlay() {
+
+        this.#overlay = document.createElement('div');
+
+        this.#overlay.style.cssText = `
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,.75);
+            color: white;
+            font-family: sans-serif;
+            z-index: 5000;
+        `;
+
+        document.body.appendChild(this.#overlay);
+
+        this.#showStartScreen();
+    }
+
+    #createButton(text, callback) {
+
+        const button = document.createElement('button');
+
+        button.textContent = text;
+
+        button.style.cssText = `
+            padding: 15px 40px;
+            font-size: 24px;
+            cursor: pointer;
+            margin-top: 30px;
+        `;
+
+        button.onclick = callback;
+
+        return button;
+    }
+
+    #showStartScreen() {
+
+        this.#state = Game.START;
+
+        document.exitPointerLock();
+
+        this.#overlay.innerHTML = "";
+
+        const title = document.createElement("h1");
+        title.textContent = "Flight Game";
+
+        const button = this.#createButton("Start", () => {
+
+            this.#overlay.style.display = "none";
+            this._crosshair.style.display = "";
+            this._healthbar.style.display = "";
+
+            this.#state = Game.RUNNING;
+
+            document.documentElement.requestPointerLock();
+        });
+
+        this.#overlay.append(title, button);
+        this._crosshair.style.display = "none";
+        this._healthbar.style.display = "none";
+    }
+
+    #showGameOver() {
+
+        this.#state = Game.GAME_OVER;
+
+        document.exitPointerLock();
+
+        this.#overlay.style.display = "flex";
+        this.#overlay.innerHTML = "";
+
+        const title = document.createElement("h1");
+        title.textContent = "Game Over";
+
+        const restart = this.#createButton("Restart", () => {
+
+            location.reload();
+
+        });
+
+        this.#overlay.append(title, restart);
+        this._crosshair.style.display = "none";
+        this._healthbar.style.display = "none";
+    }
+
     #checkCollisions() {
         /**
          * @type {Bullet[]}
@@ -297,11 +411,16 @@ export class Game {
                                 const enemyBB = new THREE.Box3().setFromObject(enemyObj);
 
                                 if (enemyBB.intersectsBox(bulletBB)) {
+                                    if (enemy.isFading()) continue;
                                     this.destroy(bullet);
                                     if (enemy.fadeOut) {
                                         enemy.fadeOut();
                                     } else {
                                         this.destroy(enemy);
+                                    }
+                                    this.#enemyKills++;
+                                    if (this.#enemyKills % 3 === 0) {
+                                        this.#spawnHealthPack(enemy.getObj().position.clone());
                                     }
                                     break;
                                 }
@@ -311,6 +430,17 @@ export class Game {
                 }
             }
         }
+    }
+
+    /**
+     * 
+     * @param {THREE.Vector3} pos 
+     */
+    #spawnHealthPack(pos) {
+        pos.x += THREE.MathUtils.randFloatSpread(200);
+        pos.z += THREE.MathUtils.randFloatSpread(200);
+
+        this.instantiate(new HealthPack(pos));
     }
 
     /**
@@ -338,7 +468,7 @@ export class Game {
     }
 
     isPaused() {
-        return this.paused;
+        return this.#state === Game.PAUSED;
     }
 
     getSpeedMultiplier() {

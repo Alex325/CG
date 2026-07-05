@@ -72,7 +72,12 @@ export class Nave extends GameObject {
         }
     }
 
+    isFading() {
+        return this.#fading;
+    }
+
     fadeOut() {
+        if (this.#fading) return;
         this.#fading = true;
         this.#fadeElapsed = 0;
         const material = this._object.children[0].children[0].material;

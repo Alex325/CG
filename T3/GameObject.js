@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Game } from './Game.js';
 
 export class GameObject {
     _object;
@@ -11,6 +12,11 @@ export class GameObject {
         return this._object;
     }
 
+    /**
+     * 
+     * @param {number} dt 
+     * @param {Game} game 
+     */
     update(dt, game) {}
 
 

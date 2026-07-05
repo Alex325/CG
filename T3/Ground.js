@@ -1,10 +1,144 @@
 import * as THREE from 'three';
-import { createGroundPlaneWired, createGroundPlaneXZ, setDefaultMaterial } from "../libs/util/util.js";
 import { GameObject } from "./GameObject.js";
 import { Tree1, Tree2 } from './Tree.js';
 import { Nave } from './Nave.js';
-import Grid from '../libs/util/grid.js';
 import { perlin2d } from './noise.js';
+import { Water } from '../build/jsm/objects/Water.js';
+
+const groundFragmentShader = `
+    in vec2 vUv;
+    in float vHeight;
+    uniform sampler2D uGrass;
+    uniform sampler2D uSand;
+
+    #include <fog_pars_fragment>
+
+    void main() {
+
+        vec4 grassColor = texture2D(uGrass, vUv);
+        vec4 sandColor = texture2D(uSand, vUv);
+
+        float mixf = smoothstep(-40.0, 50.0, vHeight);
+
+        vec4 finalColor = mix(sandColor, grassColor, mixf);
+
+        if (vHeight < -45.0) discard;
+
+        gl_FragColor = finalColor;
+
+        #include <fog_fragment>
+    }`;
+
+const groundVertexShader = `
+    out vec2 vUv;
+    out float vHeight;
+    
+    #include <fog_pars_vertex>
+    
+    void main() {
+        vUv = uv;
+        vHeight = position.z;
+        
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+
+        gl_Position = projectionMatrix * mvPosition;
+        
+        #include <fog_vertex>
+    }`;
+
+const waterVertexShader = `
+    out vec2 vUv;
+    out vec3 vWorldPos;
+
+    #include <fog_pars_vertex>
+
+    void main() {
+
+        vUv = uv;
+
+        vec4 mPosition = modelMatrix * vec4(position.xyz, 1.0);
+
+        vWorldPos = mPosition.xyz;
+        
+        vec4 mvPosition = viewMatrix * mPosition;
+
+        gl_Position = projectionMatrix * mvPosition;
+
+        #include <fog_vertex>
+    }`;
+
+const waterFragmentShader = `
+    uniform sampler2D normalMap;
+
+    uniform float time;
+
+    uniform vec3 lightDirection;
+    uniform vec3 waterColor;
+    uniform vec3 sunColor;
+
+    in vec2 vUv;
+    in vec3 vWorldPos;
+    
+    #include <fog_pars_fragment>
+    
+    void main() {
+        //---------------------------------------
+        // Animate the normal map
+        //---------------------------------------
+
+        vec2 uv1 = vUv + vec2(time * 0.03, time * 0.02);
+        vec2 uv2 = vUv + vec2(-time * 0.015, time * 0.025);
+
+        vec3 n1 = texture2D(normalMap, uv1).xyz;
+        vec3 n2 = texture2D(normalMap, uv2).xyz;
+
+        vec3 normal = normalize((n1 + n2) * 0.5 * 2.0 - 1.0);
+
+        //---------------------------------------
+        // Lighting
+        //---------------------------------------
+
+        float diffuse = max(dot(normal, normalize(lightDirection)), 0.0);
+
+        vec3 viewDir = normalize(cameraPosition - vWorldPos);
+
+        vec3 halfDir = normalize(viewDir + normalize(lightDirection));
+
+        float specular = pow(max(dot(normal, halfDir), 0.0), 80.0);
+
+        //---------------------------------------
+        // Fresnel
+        //---------------------------------------
+
+        float fresnel =
+            pow(1.0 - max(dot(viewDir, normal), 0.0), 3.0);
+
+        //---------------------------------------
+        // Final color
+        //---------------------------------------
+
+        vec3 color = waterColor;
+
+        color *= 0.4 + diffuse * 0.6;
+
+        color += sunColor * specular * 0.8;
+
+        color = mix(color, sunColor, fresnel * 0.2);
+
+        gl_FragColor = vec4(color, 1.0);
+        
+        #include <fog_fragment>
+    }`;
+
+const textureLoader = new THREE.TextureLoader();
+const grassTexture = textureLoader.load('./assets/grass.jpg');
+grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping;
+const sandTexture = textureLoader.load('./assets/sand.jpg');
+sandTexture.wrapS = sandTexture.wrapT = THREE.RepeatWrapping;
+const waterNormalsTexture = textureLoader.load('./assets/waternormals.jpg');
+waterNormalsTexture.wrapS = waterNormalsTexture.wrapT = THREE.RepeatWrapping;
+waterNormalsTexture.colorSpace = THREE.NoColorSpace
+waterNormalsTexture.repeat.set(20, 20);
 
 export class Ground extends GameObject {
 
@@ -14,6 +148,11 @@ export class Ground extends GameObject {
      * @type {THREE.Mesh[]}
      */
     #groundplanes = [];
+    /**
+     * @type {THREE.Water[]}
+     */
+    #waterplanes = [];
+
     #treeCount = 100;
     #width = 10000;
     #length = 2000;
@@ -26,16 +165,20 @@ export class Ground extends GameObject {
     constructor() {
         super();
 
-        
-        const planeMaterial = new THREE.MeshPhongMaterial({
-            color: 'green',
-            polygonOffset: false,
-            polygonOffsetFactor: 1,
-            polygonOffsetUnits: 1
+        const myUniforms = {
+            uGrass: {value: grassTexture},
+            uSand: {value: sandTexture}
+        };
+
+        const planeMaterial = new THREE.ShaderMaterial({
+            uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib['fog'], myUniforms]),
+            vertexShader: groundVertexShader,
+            fragmentShader: groundFragmentShader,
+            fog: true,
         });
         
         planeMaterial.side = THREE.DoubleSide;
-        
+
         this.#treePool = new Array(this.#treeCount*this.#ngroundplanes);
         
         for (let i = 0; i < this.#treePool.length; i++) {
@@ -50,19 +193,19 @@ export class Ground extends GameObject {
             const planeGeometry = new THREE.PlaneGeometry(this.#width, this.#length, 250, 50);
             const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
             groundPlane.receiveShadow = true;
-            //groundPlane.add(new Grid(this.#width, this.#length, 50, 10, 'white'))
             groundPlane.rotation.x = THREE.MathUtils.degToRad(-90);
             groundPlane.position.z = i*this.#length;
             groundPlane.userData.number = i;
             groundPlane.userData.spawned = false;
+            groundPlane.renderOrder = 1;
             this.#displace(groundPlane);
             this.#populate(groundPlane);
-
+            this.#waterplanes.push(this.#createWater(i));
             this.#groundplanes.push(groundPlane);
         }
         
         this._object.add(...this.#groundplanes);
-        
+
     }
     
     /**
@@ -138,7 +281,7 @@ export class Ground extends GameObject {
             const x = localX + vertex.x;
             const z = localZ - vertex.y;
 
-            const height = this.#noise2d(x*0.001 + 0.54, z*0.001 + 0.45)*300;
+            const height = this.#noise2d(x*0.001 + 0.54, z*0.001 + 0.45)*500;
             
             pos.setZ(i, height);
 
@@ -146,6 +289,8 @@ export class Ground extends GameObject {
 
         pos.needsUpdate = true;
         plane.geometry.computeBoundingBox();
+        plane.geometry.computeVertexNormals();
+        plane.geometry.computeBoundingSphere();
         plane.updateMatrixWorld(true);
         this.#globalOffsetZ += this.#length;
         
@@ -179,6 +324,12 @@ export class Ground extends GameObject {
                 
                 valid = true;
                 
+                if (z < 50.0)
+                {
+                    valid = false;
+                    break;
+                }
+
                 for (const p of placed) {
                     const dx = x - p.x;
                     const dy = y - p.y;
@@ -203,6 +354,42 @@ export class Ground extends GameObject {
             plane.add(tree);
         }
 
+    }
+
+    /**
+     * 
+     * @param {THREE.Mesh} plane 
+     */
+    #createWater(i) {
+            const waterGeometry = new THREE.PlaneGeometry(this.#width, this.#length, 256, 256);
+        
+            const waterMaterial = new THREE.ShaderMaterial({
+                uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog,
+                {
+                    time: { value: 0.0 },
+                    normalMap: { value: waterNormalsTexture },
+                    lightDirection: {
+                        value: new THREE.Vector3(0.3, 1.0, 0.4).normalize()
+                    },
+                    waterColor: {
+                        value: new THREE.Color(0x2d6f87)
+                    },
+                    sunColor: {
+                        value: new THREE.Color(0xffffff)
+                    }
+                }]),
+                vertexShader: waterVertexShader,
+                fragmentShader: waterFragmentShader,
+                fog: true,
+            });
+
+            const water = new THREE.Mesh(waterGeometry, waterMaterial);
+
+            water.rotation.x = THREE.MathUtils.degToRad(-90);
+            water.position.set(0, -50, i * this.#length);
+
+            this._object.add(water);
+            return water;
     }
 
     /**
@@ -239,6 +426,10 @@ export class Ground extends GameObject {
      * @param {Game} game 
      */
     update(dt, game) {
+
+        for (const water of this.#waterplanes) {
+            water.material.uniforms.time.value += dt;
+        }
 
         this._object.translateZ(-this.#speed*dt);
 
